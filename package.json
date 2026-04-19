@@ -51,11 +51,7 @@
     "views": {
       "kubelens-explorer": [
         {
-          "id": "kubelens.dockerView",
-          "name": "Local Containers"
-        },
-        {
-          "id": "kubelens.kubernetesView",
+          "id": "kubelens.clustersView",
           "name": "Clusters"
         }
       ]
@@ -64,24 +60,24 @@
       "view/title": [
         {
           "command": "kubelens.refreshContainers",
-          "when": "view == kubelens.dockerView || view == kubelens.kubernetesView",
+          "when": "view == kubelens.clustersView",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "kubelens.explainContainer",
-          "when": "viewItem == docker-container || viewItem == pod",
+          "when": "viewItem == pod",
           "group": "inline"
         },
         {
           "command": "kubelens.viewLogs",
-          "when": "viewItem == docker-container || viewItem == pod",
+          "when": "viewItem == pod",
           "group": "inline"
         },
         {
           "command": "kubelens.openTerminal",
-          "when": "viewItem == docker-container || viewItem == pod"
+          "when": "viewItem == pod"
         }
       ]
     }

@@ -1,4 +1,3 @@
-import { DockerClient } from '../docker/dockerClient';
 import { KubernetesClient } from '../kubernetes/kubernetesClient';
 import * as k8s from '@kubernetes/client-node';
 
@@ -10,13 +9,6 @@ export interface AnalysisExplanation {
 }
 
 export class AnalysisEngine {
-    // Legacy mapping internally
-    public static async explainContainer(containerId: string, containerName: string, state: string, status: string): Promise<AnalysisExplanation> {
-        const logs = await DockerClient.getLogs(containerId, 200);
-        const metadata = await DockerClient.inspect(containerId);
-        return this.analyzeLogsAndState(logs, status, metadata?.State?.Restarting ? metadata.RestartCount : 0);
-    }
-
     public static async explainPod(pod: k8s.V1Pod, namespace: string, kubeClient: KubernetesClient): Promise<AnalysisExplanation> {
         let logs = "";
         let restartCount = 0;
@@ -49,7 +41,7 @@ export class AnalysisEngine {
                 issue: "Port Conflict",
                 confidence: 0.95,
                 evidence: ["Logs indicate a port bind issue (address already in use)"],
-                fix: "Change the port mapping in docker run/compose or stop the conflicting service on your host."
+                fix: "Check the pod configuration for conflicting ports."
             };
         }
 
@@ -59,7 +51,7 @@ export class AnalysisEngine {
                 issue: "Missing Environment Variable",
                 confidence: 0.85,
                 evidence: ["Logs indicate missing required variables"],
-                fix: "Provide the missing environment variables using -e flag or updating the config file / Kubernetes Secret."
+                fix: "Provide the missing environment variables updating the config file / Kubernetes Secret."
             };
         }
 
