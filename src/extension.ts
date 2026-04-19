@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
-import { KubeLensTreeDataProvider, BaseTreeItem, PodTreeItem } from './ui/KubeLensTreeDataProvider';
-import { AnalysisEngine } from './analysis/engine';
-import { InsightsPanel } from './ui/InsightsPanel';
+import { KubeLensTreeDataProvider, BaseTreeItem } from './ui/KubeLensTreeDataProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('KubeLens is now active!');
@@ -13,69 +11,53 @@ export function activate(context: vscode.ExtensionContext) {
         kubeProvider.refresh();
     });
 
-    let openViewCommand = vscode.commands.registerCommand('kubelens.openContainerView', () => {
-        vscode.commands.executeCommand('kubelens.clustersView.focus');
+    let openResourceTabCommand = vscode.commands.registerCommand('kubelens.openResourceTab', (node: BaseTreeItem) => {
+        if (!node || node.type !== 'resource') return;
+
+        const panel = vscode.window.createWebviewPanel(
+            `kubelensResourceView-${node.resourceType}`,
+            `${node.label} (${node.contextName})`,
+            vscode.ViewColumn.One,
+            { enableScripts: true }
+        );
+
+        panel.webview.html = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>${node.label}</title>
+                <style>
+                    body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-editor-foreground); }
+                    h1 { color: var(--vscode-editor-foreground); font-weight: normal; margin-bottom: 20px; border-bottom: 1px solid var(--vscode-widget-border); padding-bottom: 10px; }
+                    .table-container { width: 100%; border-collapse: collapse; }
+                    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--vscode-editorLineNumber-foreground); }
+                </style>
+            </head>
+            <body>
+                <h1>☸️ ${node.label} 
+                    <span style="font-size: 14px; opacity: 0.6; float: right; margin-top: 10px;">Cluster: ${node.contextName}</span>
+                </h1>
+                <p><i>Fetching and rendering ${node.resourceType} will be implemented here.</i></p>
+                <table class="table-container">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Age</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="3" style="opacity: 0.5;">Loading data from cluster...</td></tr>
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
     });
 
-    let explainCommand = vscode.commands.registerCommand('kubelens.explainContainer', async (node: BaseTreeItem) => {
-        if (!node || node.type !== 'pod' || !(node instanceof PodTreeItem)) {
-            vscode.window.showInformationMessage('Please select a Kubernetes Pod from the clusters view.');
-            return;
-        }
-
-        vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: `Analyzing Pod ${node.label}...`,
-            cancellable: false
-        }, async () => {
-            try {
-                const explanation = await AnalysisEngine.explainPod(node.pod, node.namespace, kubeProvider.kubeClient);
-
-                const htmlContent = `<b>Issue:</b> ${explanation.issue}<br><br>
-<b>Confidence:</b> ${(explanation.confidence * 100).toFixed(0)}%<br><br>
-<b>Evidence:</b><br>
-<ul>
-  ${explanation.evidence.map((e: string) => `<li>${e}</li>`).join('')}
-</ul><br>
-<b>Suggested Fix:</b><br> ${explanation.fix}`;
-
-                InsightsPanel.createOrShow(context.extensionUri);
-                if (InsightsPanel.currentPanel) {
-                    InsightsPanel.currentPanel.updateContent(node.label, htmlContent);
-                }
-            } catch (err: any) {
-                vscode.window.showErrorMessage(`KubeLens Error: ${err.message}`);
-            }
-        });
-    });
-
-    let viewLogsCommand = vscode.commands.registerCommand('kubelens.viewLogs', (node: BaseTreeItem) => {
-        if (node instanceof PodTreeItem) {
-            const terminal = vscode.window.createTerminal(`Logs: ${node.label}`);
-            terminal.show();
-            terminal.sendText(`kubectl logs -f ${node.pod.metadata?.name} -n ${node.namespace}`);
-        } else {
-            vscode.window.showInformationMessage('Please select a Pod to view logs.');
-        }
-    });
-
-    let openTerminalCommand = vscode.commands.registerCommand('kubelens.openTerminal', (node: BaseTreeItem) => {
-        if (node instanceof PodTreeItem) {
-            const terminal = vscode.window.createTerminal(`Shell: ${node.label}`);
-            terminal.show();
-            terminal.sendText(`kubectl exec -it ${node.pod.metadata?.name} -n ${node.namespace} -- /bin/sh`);
-        } else {
-            vscode.window.showInformationMessage('Please select a Pod to open terminal.');
-        }
-    });
-
-    context.subscriptions.push(
-        refreshCommand,
-        openViewCommand,
-        explainCommand,
-        viewLogsCommand,
-        openTerminalCommand
-    );
+    context.subscriptions.push(refreshCommand, openResourceTabCommand);
 }
 
 export function deactivate() { }
