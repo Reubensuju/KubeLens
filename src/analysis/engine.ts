@@ -1,4 +1,6 @@
 import { DockerClient } from '../docker/dockerClient';
+import { KubernetesClient } from '../kubernetes/kubernetesClient';
+import * as k8s from '@kubernetes/client-node';
 
 export interface AnalysisExplanation {
     issue: string;
@@ -8,17 +10,35 @@ export interface AnalysisExplanation {
 }
 
 export class AnalysisEngine {
+    // Legacy mapping internally
     public static async explainContainer(containerId: string, containerName: string, state: string, status: string): Promise<AnalysisExplanation> {
-        // Fetch logs and inspect data
         const logs = await DockerClient.getLogs(containerId, 200);
         const metadata = await DockerClient.inspect(containerId);
+        return this.analyzeLogsAndState(logs, status, metadata?.State?.Restarting ? metadata.RestartCount : 0);
+    }
 
+    public static async explainPod(pod: k8s.V1Pod, namespace: string, kubeClient: KubernetesClient): Promise<AnalysisExplanation> {
+        let logs = "";
+        let restartCount = 0;
+
+        if (pod.metadata?.name) {
+            logs = await kubeClient.getPodLogs(namespace, pod.metadata.name);
+        }
+
+        if (pod.status?.containerStatuses && pod.status.containerStatuses.length > 0) {
+            restartCount = pod.status.containerStatuses.reduce((acc, current) => acc + current.restartCount, 0);
+        }
+
+        return this.analyzeLogsAndState(logs, pod.status?.phase || 'Unknown', restartCount);
+    }
+
+    private static analyzeLogsAndState(logs: string, status: string, restartCount: number): AnalysisExplanation {
         // 1. Crash loop detection
-        if (metadata && metadata.State && metadata.State.Restarting) {
+        if (restartCount > 3 || status === 'CrashLoopBackOff') {
             return {
                 issue: "Crash Loop Backoff",
                 confidence: 0.9,
-                evidence: [`Restart count: ${metadata.RestartCount}`, "Container is in Restarting state"],
+                evidence: [`Restart count: ${restartCount}`, `Status indicates crash loop: ${status}`],
                 fix: "Check the application startup logs. The application is failing immediately upon start."
             };
         }
@@ -39,7 +59,7 @@ export class AnalysisEngine {
                 issue: "Missing Environment Variable",
                 confidence: 0.85,
                 evidence: ["Logs indicate missing required variables"],
-                fix: "Provide the missing environment variables using -e flag or updating the config file."
+                fix: "Provide the missing environment variables using -e flag or updating the config file / Kubernetes Secret."
             };
         }
 
@@ -49,16 +69,16 @@ export class AnalysisEngine {
                 issue: "Dependency Unreachable",
                 confidence: 0.80,
                 evidence: ["Logs contain connection refused errors"],
-                fix: "Ensure all dependent services (database, APIs, etc.) are running and reachable using the correct network."
+                fix: "Ensure all dependent services (database, APIs, etc.) are running and reachable using the correct network / service."
             };
         }
 
         // Fallback for healthy or unknown issues
-        if (status.toLowerCase().includes("up")) {
+        if (status.toLowerCase().includes("up") || status.toLowerCase().includes("running")) {
             return {
                 issue: "No obvious failure detected",
                 confidence: 0.6,
-                evidence: [`Status: ${status}`, "Container appears to be running normally"],
+                evidence: [`Status: ${status}`, "Resource appears to be running normally"],
                 fix: "Check application specific logs for logical errors if something isn't working."
             };
         }
@@ -66,8 +86,8 @@ export class AnalysisEngine {
         return {
             issue: "Unknown Exit / Failure",
             confidence: 0.4,
-            evidence: [`Status: ${status}`, `Metadata state: ${metadata?.State?.Status || 'Unknown'}`],
-            fix: "Review the full logs to understand why the container exited."
+            evidence: [`Status: ${status}`],
+            fix: "Review the full logs to understand why the resource exited."
         };
     }
 }

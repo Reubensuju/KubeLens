@@ -50,8 +50,12 @@
     "views": {
       "kubelens-explorer": [
         {
-          "id": "kubelens.containersView",
-          "name": "Containers"
+          "id": "kubelens.dockerView",
+          "name": "Local Containers"
+        },
+        {
+          "id": "kubelens.kubernetesView",
+          "name": "Clusters"
         }
       ]
     },
@@ -59,24 +63,24 @@
       "view/title": [
         {
           "command": "kubelens.refreshContainers",
-          "when": "view == kubelens.containersView",
+          "when": "view == kubelens.dockerView || view == kubelens.kubernetesView",
           "group": "navigation"
         }
       ],
       "view/item/context": [
         {
           "command": "kubelens.explainContainer",
-          "when": "view == kubelens.containersView && viewItem == container",
+          "when": "viewItem == docker-container || viewItem == pod",
           "group": "inline"
         },
         {
           "command": "kubelens.viewLogs",
-          "when": "view == kubelens.containersView && viewItem == container",
+          "when": "viewItem == docker-container || viewItem == pod",
           "group": "inline"
         },
         {
           "command": "kubelens.openTerminal",
-          "when": "view == kubelens.containersView && viewItem == container"
+          "when": "viewItem == docker-container || viewItem == pod"
         }
       ]
     }
@@ -90,8 +94,11 @@
     "test": "node ./out/test/runTest.js"
   },
   "devDependencies": {
-    "@types/vscode": "^1.80.0",
     "@types/node": "16.x",
+    "@types/vscode": "^1.80.0",
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0"
   }
 }

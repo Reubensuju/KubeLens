@@ -1,0 +1,64 @@
+import * as k8s from '@kubernetes/client-node';
+
+export class KubernetesClient {
+    public kc: k8s.KubeConfig;
+    public k8sApi: k8s.CoreV1Api | null = null;
+
+    constructor() {
+        this.kc = new k8s.KubeConfig();
+        try {
+            this.kc.loadFromDefault();
+            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+        } catch (e) {
+            console.error('Failed to load kubeconfig', e);
+        }
+    }
+
+    public isConfigured(): boolean {
+        return this.k8sApi !== null;
+    }
+
+    public getContexts(): string[] {
+        if (!this.isConfigured()) return [];
+        return this.kc.contexts.map(c => c.name);
+    }
+
+    public getCurrentContext(): string | null {
+        if (!this.isConfigured()) return null;
+        return this.kc.getCurrentContext();
+    }
+
+    public async getNamespaces(contextName: string): Promise<string[]> {
+        if (!this.k8sApi) return [];
+        try {
+            this.kc.setCurrentContext(contextName);
+            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await this.k8sApi.listNamespace();
+            return (res as any).items.map((ns: any) => ns.metadata?.name || 'unknown');
+        } catch (e) {
+            console.error('Failed to list namespaces', e);
+            return [];
+        }
+    }
+
+    public async getPods(namespace: string): Promise<k8s.V1Pod[]> {
+        if (!this.k8sApi) return [];
+        try {
+            const res = await this.k8sApi.listNamespacedPod({ namespace });
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list pods for namespace', namespace, e);
+            return [];
+        }
+    }
+
+    public async getPodLogs(namespace: string, podName: string): Promise<string> {
+        if (!this.k8sApi) return "";
+        try {
+            const res = await this.k8sApi.readNamespacedPodLog({ name: podName, namespace, tailLines: 200 });
+            return typeof res === 'string' ? res : (res as any).toString();
+        } catch (e) {
+            return `Failed to fetch pod logs: ${(e as Error).message}`;
+        }
+    }
+}
