@@ -3,6 +3,7 @@
   "displayName": "KubeLens",
   "description": "Understand your containers, not just view them. An explainable runtime debugger for Docker systems.",
   "version": "0.0.1",
+  "icon": "resources/logo.png",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -43,7 +44,7 @@
         {
           "id": "kubelens-explorer",
           "title": "KubeLens",
-          "icon": "resources/icon.svg"
+          "icon": "resources/kubelens-icon.svg"
         }
       ]
     },
