@@ -1,0 +1,106 @@
+{
+  "name": "kubelens",
+  "displayName": "KubeLens",
+  "description": "Understand your containers, not just view them. An explainable runtime debugger for Docker systems.",
+  "version": "0.0.1",
+  "icon": "resources/logo.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kubelens.openContainerView",
+        "title": "KubeLens: Open Container View"
+      },
+      {
+        "command": "kubelens.explainContainer",
+        "title": "KubeLens: Explain Container",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "kubelens.viewLogs",
+        "title": "KubeLens: View Logs",
+        "icon": "$(output)"
+      },
+      {
+        "command": "kubelens.openTerminal",
+        "title": "KubeLens: Open Terminal in Container",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "kubelens.refreshContainers",
+        "title": "KubeLens: Refresh Containers",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kubelens-explorer",
+          "title": "KubeLens",
+          "icon": "resources/kubelens-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "kubelens-explorer": [
+        {
+          "id": "kubelens.clustersView",
+          "name": "Clusters"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "kubelens.refreshContainers",
+          "when": "view == kubelens.clustersView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "kubelens.explainContainer",
+          "when": "viewItem == pod",
+          "group": "inline"
+        },
+        {
+          "command": "kubelens.viewLogs",
+          "when": "viewItem == pod",
+          "group": "inline"
+        },
+        {
+          "command": "kubelens.openTerminal",
+          "when": "viewItem == pod"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "lint": "echo \"Linting deactivated temporarily\"",
+    "test": "mocha -r ts-node/register 'src/test/**/*.test.ts'"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.3",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "16.x",
+    "@types/vscode": "^1.80.0",
+    "chai": "^4.5.0",
+    "mocha": "^11.7.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "@kubernetes/client-node": "^1.4.0"
+  }
+}
