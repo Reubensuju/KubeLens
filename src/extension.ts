@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { KubeLensTreeDataProvider, BaseTreeItem } from './ui/KubeLensTreeDataProvider';
 
+// Map storing active webview panels keyed by Kubernetes Context Name
+const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('KubeLens is now active!');
 
@@ -12,15 +15,32 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     let openResourceTabCommand = vscode.commands.registerCommand('kubelens.openResourceTab', (node: BaseTreeItem) => {
-        if (!node || node.type !== 'resource') return;
+        if (!node || node.type !== 'resource' || !node.contextName) return;
 
-        const panel = vscode.window.createWebviewPanel(
-            `kubelensResourceView-${node.resourceType}`,
-            `${node.label} (${node.contextName})`,
-            vscode.ViewColumn.One,
-            { enableScripts: true }
-        );
+        let panel = clusterPanels.get(node.contextName);
 
+        if (panel) {
+            // If a tab for this cluster is already open, focus it and rename the title
+            panel.reveal(vscode.ViewColumn.One);
+            panel.title = `${node.label} (${node.contextName})`;
+        } else {
+            // Create a brand new tab for this cluster
+            panel = vscode.window.createWebviewPanel(
+                `kubelensClusterView-${node.contextName}`,
+                `${node.label} (${node.contextName})`,
+                vscode.ViewColumn.One,
+                { enableScripts: true }
+            );
+
+            // Clean up memory and the mapping when the user manually closes the tab
+            panel.onDidDispose(() => {
+                clusterPanels.delete(node.contextName!);
+            });
+
+            clusterPanels.set(node.contextName, panel);
+        }
+
+        // Overwrite the DOM inside the Webview entirely to reflect the exact resource requested
         panel.webview.html = `
             <!DOCTYPE html>
             <html lang="en">
@@ -60,4 +80,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(refreshCommand, openResourceTabCommand);
 }
 
-export function deactivate() { }
+export function deactivate() {
+    clusterPanels.forEach(panel => panel.dispose());
+    clusterPanels.clear();
+}
