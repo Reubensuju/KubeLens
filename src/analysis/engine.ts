@@ -24,7 +24,7 @@ export class AnalysisEngine {
         return this.analyzeLogsAndState(logs, pod.status?.phase || 'Unknown', restartCount);
     }
 
-    private static analyzeLogsAndState(logs: string, status: string, restartCount: number): AnalysisExplanation {
+    public static analyzeLogsAndState(logs: string, status: string, restartCount: number): AnalysisExplanation {
         // 1. Crash loop detection
         if (restartCount > 3 || status === 'CrashLoopBackOff') {
             return {
