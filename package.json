@@ -1,0 +1,97 @@
+{
+  "name": "kubelens",
+  "displayName": "KubeLens",
+  "description": "Understand your containers, not just view them. An explainable runtime debugger for Docker systems.",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kubelens.openContainerView",
+        "title": "KubeLens: Open Container View"
+      },
+      {
+        "command": "kubelens.explainContainer",
+        "title": "KubeLens: Explain Container",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "kubelens.viewLogs",
+        "title": "KubeLens: View Logs",
+        "icon": "$(output)"
+      },
+      {
+        "command": "kubelens.openTerminal",
+        "title": "KubeLens: Open Terminal in Container",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "kubelens.refreshContainers",
+        "title": "KubeLens: Refresh Containers",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "kubelens-explorer",
+          "title": "KubeLens",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "kubelens-explorer": [
+        {
+          "id": "kubelens.containersView",
+          "name": "Containers"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "kubelens.refreshContainers",
+          "when": "view == kubelens.containersView",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "kubelens.explainContainer",
+          "when": "view == kubelens.containersView && viewItem == container",
+          "group": "inline"
+        },
+        {
+          "command": "kubelens.viewLogs",
+          "when": "view == kubelens.containersView && viewItem == container",
+          "group": "inline"
+        },
+        {
+          "command": "kubelens.openTerminal",
+          "when": "view == kubelens.containersView && viewItem == container"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/node": "16.x",
+    "typescript": "^5.0.4"
+  }
+}
