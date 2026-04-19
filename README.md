@@ -1,6 +1,6 @@
 <div align="center">
   <br>
-  <img src="resources/logo.png" width="128" height="128" alt="KubeLens Logo" />
+  <img src="resources/kubelens-icon.svg" width="128" height="128" alt="KubeLens Logo" />
   <h1>KubeLens</h1>
   <p><b>An explainable runtime debugger for Kubernetes straight inside VS Code.</b></p>
   <p>Understand <u>why</u> your pods are failing, don't just stare at them.</p>
