@@ -25,8 +25,9 @@ export class TableComponent {
             }
             .data-table th:first-child,
             .data-table td:first-child {
-                padding-right: 8px;
-                width: 32px;
+                padding-right: 16px;
+                padding-left: 16px;
+                width: 1%;
             }
             .data-table th:nth-child(2),
             .data-table td:nth-child(2) {
@@ -64,7 +65,7 @@ export class TableComponent {
     }
 
     public static getHtml(columns: string[], rowsHtml: string): string {
-        let theadHtml = `<tr>\n<th style="width: 30px;"><div class="checkbox"></div></th>\n`;
+        let theadHtml = `<tr>\n<th><div class="checkbox"></div></th>\n`;
         theadHtml += columns.map(c => `<th>${c}</th>`).join('\n');
         theadHtml += `\n<th style="width: 40px;"></th>\n</tr>`;
 

@@ -73,7 +73,7 @@ export class ResourceWebview {
 
             return `
                 <tr class="searchable-row">
-                    <td style="width: 30px;"><div class="checkbox"></div></td>
+                    <td><div class="checkbox"></div></td>
                     <td style="width: 20%;">${name}</td>
                     <td style="width: 40%;">${labelsHtml}</td>
                     <td style="width: 10%;">${age}</td>
