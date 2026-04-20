@@ -22,6 +22,10 @@ export class ResourceWebview {
             const podsList = await kubeClient.getPodsAllNamespaces(node.contextName);
             itemCount = podsList.length;
             contentHtml = this.buildPodsTable(podsList);
+        } else if (node.resourceType === 'deployments' && node.contextName) {
+            const list = await kubeClient.getDeployments(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildDeploymentsTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -214,6 +218,61 @@ export class ResourceWebview {
         }).join('');
 
         return TableComponent.getHtml(['Name', 'Namespace', 'Containers', 'Restarts', 'Controlled By', 'Node', 'QoS', 'Age', 'Status'], rows);
+    }
+
+    private static buildDeploymentsTable(list: k8s.V1Deployment[]): string {
+        if (list.length === 0) {
+            return `<div style="padding: 16px; opacity: 0.6;">No deployments found.</div>`;
+        }
+
+        const rows = list.map(d => {
+            const name = d.metadata?.name || 'unknown';
+            const ns = d.metadata?.namespace || 'default';
+            const age = this.calculateAge(d.metadata?.creationTimestamp);
+
+            const specReplicas = d.spec?.replicas || 0;
+            const readyReplicas = d.status?.readyReplicas || 0;
+            const currentReplicas = d.status?.replicas || 0;
+
+            const podsStr = `${readyReplicas}/${specReplicas}`;
+
+            let status = 'Unknown';
+            let statusClass = '';
+
+            const conds = d.status?.conditions || [];
+            const availableCond = conds.find(c => c.type === 'Available');
+            const progressingCond = conds.find(c => c.type === 'Progressing');
+
+            if (availableCond && availableCond.status === 'True') {
+                status = 'Active';
+                statusClass = 'status-active';
+                if (specReplicas === 0) {
+                    status = 'Scaled Down';
+                    statusClass = '';
+                }
+            } else if (progressingCond && progressingCond.status === 'True' && readyReplicas < specReplicas) {
+                status = 'Updating';
+                statusClass = '';
+            } else {
+                status = 'Failed/Pending';
+                statusClass = 'status-terminating';
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td>${podsStr}</td>
+                    <td>${currentReplicas}</td>
+                    <td>${age}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Pods', 'Replicas', 'Age', 'Status'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {

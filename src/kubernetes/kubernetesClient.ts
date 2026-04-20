@@ -41,6 +41,18 @@ export class KubernetesClient {
         }
     }
 
+    public async getDeployments(contextName: string): Promise<k8s.V1Deployment[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
+            const res = await appsApi.listDeploymentForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list deployments', e);
+            return [];
+        }
+    }
+
     public async getPodsAllNamespaces(contextName: string): Promise<k8s.V1Pod[]> {
         if (!this.k8sApi) return [];
         try {
