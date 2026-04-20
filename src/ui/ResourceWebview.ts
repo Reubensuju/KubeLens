@@ -18,6 +18,10 @@ export class ResourceWebview {
             const nodesList = await kubeClient.getNodes(node.contextName);
             itemCount = nodesList.length;
             contentHtml = this.buildNodesTable(nodesList);
+        } else if (node.resourceType === 'pods' && node.contextName) {
+            const podsList = await kubeClient.getPodsAllNamespaces(node.contextName);
+            itemCount = podsList.length;
+            contentHtml = this.buildPodsTable(podsList);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -154,6 +158,62 @@ export class ResourceWebview {
         }).join('');
 
         return TableComponent.getHtml(['Name', 'Taints', 'Roles', 'Version', 'Age', 'Conditions'], rows);
+    }
+
+    private static buildPodsTable(podsList: k8s.V1Pod[]): string {
+        if (podsList.length === 0) {
+            return `<div style="padding: 16px; opacity: 0.6;">No pods found.</div>`;
+        }
+
+        const rows = podsList.map(p => {
+            const name = p.metadata?.name || 'unknown';
+            const ns = p.metadata?.namespace || 'default';
+            const age = this.calculateAge(p.metadata?.creationTimestamp);
+
+            let containersHtml = '';
+            let restarts = 0;
+            if (p.status?.containerStatuses) {
+                containersHtml = p.status.containerStatuses.map(cs => {
+                    restarts += (cs.restartCount || 0);
+                    return `<span class="container-square ${cs.ready ? 'ready' : ''}" title="${cs.name} (${cs.ready ? 'ready' : 'unready'})"></span>`;
+                }).join('');
+            }
+
+            let ownerStr = '';
+            if (p.metadata?.ownerReferences && p.metadata.ownerReferences.length > 0) {
+                const o = p.metadata.ownerReferences[0];
+                ownerStr = `<span style="opacity: 0.8;">${o.kind} / ${o.name}</span>`;
+            }
+
+            const nodeName = p.spec?.nodeName || '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            const qosStr = p.status?.qosClass || '';
+
+            const phase = p.status?.phase || 'Unknown';
+            let statusClass = '';
+            if (phase === 'Running' || phase === 'Succeeded') {
+                statusClass = 'status-active';
+            } else if (phase === 'Failed' || phase === 'Error') {
+                statusClass = 'status-terminating';
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td>${containersHtml}</td>
+                    <td>${restarts}</td>
+                    <td>${ownerStr}</td>
+                    <td>${nodeName}</td>
+                    <td>${qosStr}</td>
+                    <td>${age}</td>
+                    <td class="${statusClass}">${phase}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Containers', 'Restarts', 'Controlled By', 'Node', 'QoS', 'Age', 'Status'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {

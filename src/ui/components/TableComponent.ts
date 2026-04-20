@@ -52,6 +52,17 @@ export class TableComponent {
                 margin-right: 4px;
                 margin-bottom: 4px;
             }
+            .container-square {
+                display: inline-block;
+                width: 10px;
+                height: 10px;
+                margin-right: 2px;
+                border-radius: 2px;
+                background-color: var(--vscode-disabledForeground, #888);
+            }
+            .container-square.ready {
+                background-color: var(--vscode-testing-iconPassed, #23D18B);
+            }
             .checkbox {
                 width: 14px;
                 height: 14px;
