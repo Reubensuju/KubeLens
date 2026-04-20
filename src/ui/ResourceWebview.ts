@@ -14,6 +14,10 @@ export class ResourceWebview {
             const namespaces = await kubeClient.getNamespacesFull(node.contextName);
             itemCount = namespaces.length;
             contentHtml = this.buildNamespacesTable(namespaces);
+        } else if (node.resourceType === 'nodes' && node.contextName) {
+            const nodesList = await kubeClient.getNodes(node.contextName);
+            itemCount = nodesList.length;
+            contentHtml = this.buildNodesTable(nodesList);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -84,6 +88,72 @@ export class ResourceWebview {
         }).join('');
 
         return TableComponent.getHtml(['Name', 'Labels', 'Age', 'Status'], rows);
+    }
+
+    private static buildNodesTable(nodesList: k8s.V1Node[]): string {
+        if (nodesList.length === 0) {
+            return `<div style="padding: 16px; opacity: 0.6;">No nodes found.</div>`;
+        }
+
+        const rows = nodesList.map(n => {
+            const name = n.metadata?.name || 'unknown';
+            const version = n.status?.nodeInfo?.kubeletVersion || 'Unknown';
+            const age = this.calculateAge(n.metadata?.creationTimestamp);
+
+            let taintsHtml = '<span style="opacity:0.5;">0</span>';
+            if (n.spec?.taints && n.spec.taints.length > 0) {
+                const limit = 2;
+                taintsHtml = n.spec.taints.slice(0, limit).map(t => {
+                    const valueStr = t.value ? `=${t.value}` : '';
+                    return `<span class="label-badge" style="background-color: var(--vscode-editorWarning-background); color: var(--vscode-editorWarning-foreground);">${t.key}${valueStr}:${t.effect}</span>`;
+                }).join('');
+                if (n.spec.taints.length > limit) {
+                    taintsHtml += `<span class="label-badge">+${n.spec.taints.length - limit} more</span>`;
+                }
+            }
+
+            let rolesHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (n.metadata?.labels) {
+                const keys = Object.keys(n.metadata.labels);
+                const roleKeys = keys.filter(k => k.startsWith('node-role.kubernetes.io/'));
+                if (roleKeys.length > 0) {
+                    rolesHtml = roleKeys.map(k => {
+                        const roleName = k.replace('node-role.kubernetes.io/', '');
+                        return `<span class="label-badge">${roleName}</span>`;
+                    }).join('');
+                }
+            }
+
+            let conditionsStr = 'Unknown';
+            let statusClass = '';
+            if (n.status?.conditions) {
+                const readyCond = n.status.conditions.find(c => c.type === 'Ready');
+                if (readyCond) {
+                    if (readyCond.status === 'True') {
+                        conditionsStr = 'Ready';
+                        statusClass = 'status-active';
+                    } else {
+                        conditionsStr = 'NotReady';
+                        statusClass = 'status-terminating';
+                    }
+                }
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="width: 25%; font-weight: bold;">${name}</td>
+                    <td style="width: 25%;">${taintsHtml}</td>
+                    <td style="width: 15%;">${rolesHtml}</td>
+                    <td style="width: 10%;">${version}</td>
+                    <td style="width: 10%;">${age}</td>
+                    <td style="width: 10%;" class="${statusClass}">${conditionsStr}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        return TableComponent.getHtml(['Name', 'Taints', 'Roles', 'Version', 'Age', 'Conditions'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {
