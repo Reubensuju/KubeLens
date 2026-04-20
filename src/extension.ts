@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { KubeLensTreeDataProvider, BaseTreeItem } from './ui/KubeLensTreeDataProvider';
+import { ResourceWebview } from './ui/ResourceWebview';
 
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
@@ -14,25 +15,22 @@ export function activate(context: vscode.ExtensionContext) {
         kubeProvider.refresh();
     });
 
-    let openResourceTabCommand = vscode.commands.registerCommand('kubelens.openResourceTab', (node: BaseTreeItem) => {
+    let openResourceTabCommand = vscode.commands.registerCommand('kubelens.openResourceTab', async (node: BaseTreeItem) => {
         if (!node || node.type !== 'resource' || !node.contextName) return;
 
         let panel = clusterPanels.get(node.contextName);
 
         if (panel) {
-            // If a tab for this cluster is already open, focus it and rename the title
             panel.reveal(vscode.ViewColumn.One);
-            panel.title = `${node.label} (${node.contextName})`;
+            panel.title = `${node.label} - ${node.contextName}`;
         } else {
-            // Create a brand new tab for this cluster
             panel = vscode.window.createWebviewPanel(
                 `kubelensClusterView-${node.contextName}`,
-                `${node.label} (${node.contextName})`,
+                `${node.label} - ${node.contextName}`,
                 vscode.ViewColumn.One,
                 { enableScripts: true }
             );
 
-            // Clean up memory and the mapping when the user manually closes the tab
             panel.onDidDispose(() => {
                 clusterPanels.delete(node.contextName!);
             });
@@ -40,41 +38,35 @@ export function activate(context: vscode.ExtensionContext) {
             clusterPanels.set(node.contextName, panel);
         }
 
-        // Overwrite the DOM inside the Webview entirely to reflect the exact resource requested
+        // Show a temporary loading state
         panel.webview.html = `
             <!DOCTYPE html>
             <html lang="en">
             <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>${node.label}</title>
                 <style>
-                    body { font-family: var(--vscode-font-family); padding: 20px; color: var(--vscode-editor-foreground); }
-                    h1 { color: var(--vscode-editor-foreground); font-weight: normal; margin-bottom: 20px; border-bottom: 1px solid var(--vscode-widget-border); padding-bottom: 10px; }
-                    .table-container { width: 100%; border-collapse: collapse; }
-                    th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--vscode-editorLineNumber-foreground); }
+                    body { font-family: var(--vscode-font-family); color: var(--vscode-editor-foreground); padding: 20px; }
                 </style>
             </head>
             <body>
-                <h1>☸️ ${node.label} 
-                    <span style="font-size: 14px; opacity: 0.6; float: right; margin-top: 10px;">Cluster: ${node.contextName}</span>
-                </h1>
-                <p><i>Fetching and rendering ${node.resourceType} will be implemented here.</i></p>
-                <table class="table-container">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Age</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td colspan="3" style="opacity: 0.5;">Loading data from cluster...</td></tr>
-                    </tbody>
-                </table>
+                <p>Fetching ${node.label} from Cluster <b>${node.contextName}</b>...</p>
             </body>
             </html>
         `;
+
+        // Fetch the specific data block
+        try {
+            const html = await ResourceWebview.getHtml(node, kubeProvider.kubeClient);
+            panel.webview.html = html;
+        } catch (e: any) {
+            panel.webview.html = `
+                <!DOCTYPE html>
+                <html>
+                <body>
+                    <p style="color: var(--vscode-testing-iconFailed);">Failed to fetch data: ${e.message}</p>
+                </body>
+                </html>
+            `;
+        }
     });
 
     context.subscriptions.push(refreshCommand, openResourceTabCommand);
