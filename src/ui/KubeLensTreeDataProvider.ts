@@ -1,38 +1,30 @@
 import * as vscode from 'vscode';
 import { KubernetesClient } from '../kubernetes/kubernetesClient';
-import * as k8s from '@kubernetes/client-node';
 
 export class BaseTreeItem extends vscode.TreeItem {
     constructor(
         public readonly label: string,
         public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-        public readonly type: 'root' | 'cluster' | 'namespace' | 'pod' | 'error',
-        public readonly resourceId?: string,
-        public readonly parentResourceId?: string
+        public readonly type: 'cluster' | 'category' | 'resource' | 'error',
+        public readonly contextName?: string,
+        public readonly resourceType?: string
     ) {
         super(label, collapsibleState);
         this.contextValue = type;
-    }
-}
+        this.tooltip = label;
 
-
-export class PodTreeItem extends BaseTreeItem {
-    constructor(
-        public readonly pod: k8s.V1Pod,
-        public readonly namespace: string
-    ) {
-        super(pod.metadata?.name || 'unknown', vscode.TreeItemCollapsibleState.None, 'pod', pod.metadata?.name, namespace);
-        const status = pod.status?.phase || 'Unknown';
-        this.description = status;
-        this.tooltip = `Pod: ${this.label}\nStatus: ${status}`;
-
-        if (status === 'Running' || status === 'Succeeded') {
-            this.iconPath = new vscode.ThemeIcon('play-circle', new vscode.ThemeColor('testing.iconPassed'));
-        } else if (status === 'Failed' || status === 'CrashLoopBackOff' || status === 'Pending') {
-            this.iconPath = new vscode.ThemeIcon('stop-circle', new vscode.ThemeColor('testing.iconFailed'));
-        } else {
-            this.iconPath = new vscode.ThemeIcon('question');
+        if (type === 'cluster') this.iconPath = new vscode.ThemeIcon('server');
+        if (type === 'category') this.iconPath = new vscode.ThemeIcon('folder');
+        if (type === 'resource') {
+            this.iconPath = new vscode.ThemeIcon('list-flat');
+            // Attach a command strictly to leaf resources
+            this.command = {
+                command: 'kubelens.openResourceTab',
+                title: 'Open Resource Tab',
+                arguments: [this]
+            };
         }
+        if (type === 'error') this.iconPath = new vscode.ThemeIcon('error');
     }
 }
 
@@ -56,6 +48,7 @@ export class KubeLensTreeDataProvider implements vscode.TreeDataProvider<BaseTre
 
     async getChildren(element?: BaseTreeItem): Promise<BaseTreeItem[]> {
         if (!element) {
+            // Root level: Clusters
             if (!this.kubeClient.isConfigured()) {
                 return [new BaseTreeItem('No valid ~/.kube/config found', vscode.TreeItemCollapsibleState.None, 'error')];
             }
@@ -71,16 +64,37 @@ export class KubeLensTreeDataProvider implements vscode.TreeDataProvider<BaseTre
         }
 
         if (element.type === 'cluster') {
-            const namespaces = await this.kubeClient.getNamespaces(element.resourceId!);
-            return namespaces.map(ns => new BaseTreeItem(ns, vscode.TreeItemCollapsibleState.Collapsed, 'namespace', ns, element.resourceId));
+            return [
+                new BaseTreeItem('Nodes', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'nodes'),
+                new BaseTreeItem('Workloads', vscode.TreeItemCollapsibleState.Collapsed, 'category', element.contextName),
+                new BaseTreeItem('Configuration', vscode.TreeItemCollapsibleState.Collapsed, 'category', element.contextName),
+                new BaseTreeItem('Network', vscode.TreeItemCollapsibleState.Collapsed, 'category', element.contextName),
+                new BaseTreeItem('Namespaces', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'namespaces')
+            ];
         }
 
-        if (element.type === 'namespace') {
-            const pods = await this.kubeClient.getPods(element.resourceId!);
-            if (pods.length === 0) {
-                return [new BaseTreeItem('No pods found in namespace', vscode.TreeItemCollapsibleState.None, 'error')];
-            }
-            return pods.map(p => new PodTreeItem(p, element.resourceId!));
+        if (element.type === 'category' && element.label === 'Workloads') {
+            return [
+                new BaseTreeItem('Pods', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'pods'),
+                new BaseTreeItem('Deployments', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'deployments'),
+                new BaseTreeItem('Jobs', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'jobs')
+            ];
+        }
+
+        if (element.type === 'category' && element.label === 'Configuration') {
+            return [
+                new BaseTreeItem('ConfigMaps', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'configmaps'),
+                new BaseTreeItem('Secrets', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'secrets')
+            ];
+        }
+
+        if (element.type === 'category' && element.label === 'Network') {
+            return [
+                new BaseTreeItem('Services', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'services'),
+                new BaseTreeItem('Endpoints', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'endpoints'),
+                new BaseTreeItem('Ingresses', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'ingresses'),
+                new BaseTreeItem('Port Forwarding', vscode.TreeItemCollapsibleState.None, 'resource', element.contextName, 'portforwarding')
+            ];
         }
 
         return [];

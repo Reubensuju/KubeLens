@@ -15,28 +15,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "kubelens.openContainerView",
-        "title": "KubeLens: Open Container View"
-      },
-      {
-        "command": "kubelens.explainContainer",
-        "title": "KubeLens: Explain Container",
-        "icon": "$(preview)"
-      },
-      {
-        "command": "kubelens.viewLogs",
-        "title": "KubeLens: View Logs",
-        "icon": "$(output)"
-      },
-      {
-        "command": "kubelens.openTerminal",
-        "title": "KubeLens: Open Terminal in Container",
-        "icon": "$(terminal)"
-      },
-      {
         "command": "kubelens.refreshContainers",
-        "title": "KubeLens: Refresh Containers",
+        "title": "KubeLens: Refresh Clusters",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "kubelens.openResourceTab",
+        "title": "KubeLens: Open Resource View"
       }
     ],
     "viewsContainers": {
@@ -64,22 +49,7 @@
           "group": "navigation"
         }
       ],
-      "view/item/context": [
-        {
-          "command": "kubelens.explainContainer",
-          "when": "viewItem == pod",
-          "group": "inline"
-        },
-        {
-          "command": "kubelens.viewLogs",
-          "when": "viewItem == pod",
-          "group": "inline"
-        },
-        {
-          "command": "kubelens.openTerminal",
-          "when": "viewItem == pod"
-        }
-      ]
+      "view/item/context": []
     }
   },
   "scripts": {

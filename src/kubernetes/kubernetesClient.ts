@@ -28,6 +28,57 @@ export class KubernetesClient {
         return this.kc.getCurrentContext();
     }
 
+    public async getNamespacesFull(contextName: string): Promise<k8s.V1Namespace[]> {
+        if (!this.k8sApi) return [];
+        try {
+            this.kc.setCurrentContext(contextName);
+            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await this.k8sApi.listNamespace();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list namespaces full', e);
+            return [];
+        }
+    }
+
+    public async getDeployments(contextName: string): Promise<k8s.V1Deployment[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const appsApi = this.kc.makeApiClient(k8s.AppsV1Api);
+            const res = await appsApi.listDeploymentForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list deployments', e);
+            return [];
+        }
+    }
+
+    public async getPodsAllNamespaces(contextName: string): Promise<k8s.V1Pod[]> {
+        if (!this.k8sApi) return [];
+        try {
+            this.kc.setCurrentContext(contextName);
+            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await this.k8sApi.listPodForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list pods', e);
+            return [];
+        }
+    }
+
+    public async getNodes(contextName: string): Promise<k8s.V1Node[]> {
+        if (!this.k8sApi) return [];
+        try {
+            this.kc.setCurrentContext(contextName);
+            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await this.k8sApi.listNode();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list nodes', e);
+            return [];
+        }
+    }
+
     public async getNamespaces(contextName: string): Promise<string[]> {
         if (!this.k8sApi) return [];
         try {
