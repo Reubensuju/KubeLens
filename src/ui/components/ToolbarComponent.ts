@@ -50,6 +50,11 @@ export class ToolbarComponent {
                 background-color: var(--vscode-toolbar-hoverBackground);
                 opacity: 1;
             }
+            .search-control.active {
+                background-color: var(--vscode-toolbar-hoverBackground);
+                color: var(--vscode-focusBorder);
+                opacity: 1;
+            }
             .toolbar-actions {
                 display: flex;
                 align-items: center;
@@ -78,14 +83,12 @@ export class ToolbarComponent {
                 <div class="search-container">
                     <input type="text" id="searchInput" placeholder="${placeholderText}" />
                     <div class="search-controls">
-                        <i class="search-control codicon codicon-case-sensitive" title="Match Case"></i>
-                        <i class="search-control codicon codicon-whole-word" title="Match Whole Word"></i>
-                        <i class="search-control codicon codicon-regex" title="Use Regular Expression"></i>
+                        <i id="btnMatchCase" class="search-control codicon codicon-case-sensitive" title="Match Case"></i>
+                        <i id="btnWholeWord" class="search-control codicon codicon-whole-word" title="Match Whole Word"></i>
+                        <i id="btnRegex" class="search-control codicon codicon-regex" title="Use Regular Expression"></i>
                     </div>
                 </div>
                 <div class="toolbar-actions">
-                    <i class="codicon codicon-cloud-download"></i>
-                    <i class="codicon codicon-filter"></i>
                     <span id="itemCountDisplay">${itemCount === 1 ? '1 item' : itemCount + ' items'}</span>
                 </div>
             </div>
@@ -99,14 +102,69 @@ export class ToolbarComponent {
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');
             
+            const btnMatchCase = document.getElementById('btnMatchCase');
+            const btnWholeWord = document.getElementById('btnWholeWord');
+            const btnRegex = document.getElementById('btnRegex');
+
+            let matchCase = false;
+            let wholeWord = false;
+            let useRegex = false;
+
+            function toggleBtn(btn, stateVar) {
+                if (!btn) return stateVar;
+                const newState = !stateVar;
+                if (newState) btn.classList.add('active');
+                else btn.classList.remove('active');
+                return newState;
+            }
+
+            function triggerSearch() {
+                if (searchInput) searchInput.dispatchEvent(new Event('input'));
+            }
+
+            if (btnMatchCase) btnMatchCase.onclick = () => { matchCase = toggleBtn(btnMatchCase, matchCase); triggerSearch(); };
+            if (btnWholeWord) btnWholeWord.onclick = () => { wholeWord = toggleBtn(btnWholeWord, wholeWord); triggerSearch(); };
+            if (btnRegex) btnRegex.onclick = () => { useRegex = toggleBtn(btnRegex, useRegex); triggerSearch(); };
+
+            function escapeStr(s) {
+                return s.split('').map(c => '.*+?^$(){}[]|\\\\'.includes(c) ? '\\\\' + c : c).join('');
+            }
+            
             if (searchInput) {
                 searchInput.addEventListener('input', (e) => {
-                    const query = e.target.value.toLowerCase();
+                    const rawQuery = e.target.value;
                     let visibleCount = 0;
                     
                     rows.forEach(row => {
-                        const text = row.innerText.toLowerCase();
-                        if (text.includes(query)) {
+                        const rawText = row.innerText;
+                        let isMatch = true;
+                        
+                        if (rawQuery) {
+                            try {
+                                if (useRegex) {
+                                    const flags = matchCase ? 'g' : 'gi';
+                                    let regexStr = rawQuery;
+                                    if (wholeWord) regexStr = '\\\\b' + regexStr + '\\\\b';
+                                    const regex = new RegExp(regexStr, flags);
+                                    isMatch = regex.test(rawText);
+                                } else {
+                                    let targetText = matchCase ? rawText : rawText.toLowerCase();
+                                    let searchTxt = matchCase ? rawQuery : rawQuery.toLowerCase();
+                                    
+                                    if (wholeWord) {
+                                        const escaped = escapeStr(searchTxt);
+                                        const wordRegex = new RegExp('\\\\b' + escaped + '\\\\b', matchCase ? '' : 'i');
+                                        isMatch = wordRegex.test(rawText);
+                                    } else {
+                                        isMatch = targetText.includes(searchTxt);
+                                    }
+                                }
+                            } catch (err) {
+                                isMatch = false; 
+                            }
+                        }
+
+                        if (isMatch) {
                             row.style.display = '';
                             visibleCount++;
                         } else {
