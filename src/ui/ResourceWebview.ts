@@ -30,6 +30,10 @@ export class ResourceWebview {
             const list = await kubeClient.getJobs(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildJobsTable(list);
+        } else if (node.resourceType === 'configmaps' && node.contextName) {
+            const list = await kubeClient.getConfigMaps(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildConfigMapsTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -326,6 +330,44 @@ export class ResourceWebview {
         }
 
         return TableComponent.getHtml(['Name', 'Namespace', 'Completions', 'Age', 'Conditions'], rows);
+    }
+
+    private static buildConfigMapsTable(list: k8s.V1ConfigMap[]): string {
+        let rows = list.map(cm => {
+            const name = cm.metadata?.name || 'unknown';
+            const ns = cm.metadata?.namespace || 'default';
+            const age = this.calculateAge(cm.metadata?.creationTimestamp);
+
+            const dataKeys = Object.keys(cm.data || {});
+            const binaryDataKeys = Object.keys(cm.binaryData || {});
+            const allKeys = [...dataKeys, ...binaryDataKeys];
+
+            let keysHtml = '<span style="opacity:0.5;">0 keys</span>';
+            if (allKeys.length > 0) {
+                const limit = 3;
+                keysHtml = allKeys.slice(0, limit).map(k => `<span class="label-badge">${k}</span>`).join('');
+                if (allKeys.length > limit) {
+                    keysHtml += `<span class="label-badge">+${allKeys.length - limit} more</span>`;
+                }
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td style="width: 40%;">${keysHtml}</td>
+                    <td>${age}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No config maps found</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Keys', 'Age'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {
