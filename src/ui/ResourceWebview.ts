@@ -26,6 +26,10 @@ export class ResourceWebview {
             const list = await kubeClient.getDeployments(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildDeploymentsTable(list);
+        } else if (node.resourceType === 'jobs' && node.contextName) {
+            const list = await kubeClient.getJobs(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildJobsTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -62,11 +66,7 @@ export class ResourceWebview {
     }
 
     private static buildNamespacesTable(namespaces: k8s.V1Namespace[]): string {
-        if (namespaces.length === 0) {
-            return `<div style="padding: 16px; opacity: 0.6;">No namespaces found.</div>`;
-        }
-
-        const rows = namespaces.map(ns => {
+        let rows = namespaces.map(ns => {
             const name = ns.metadata?.name || 'unknown';
             const status = ns.status?.phase || 'Unknown';
             const statusClass = status === 'Active' ? 'status-active' : 'status-terminating';
@@ -95,15 +95,15 @@ export class ResourceWebview {
             `;
         }).join('');
 
+        if (namespaces.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No namespaces found</td></tr>`;
+        }
+
         return TableComponent.getHtml(['Name', 'Labels', 'Age', 'Status'], rows);
     }
 
     private static buildNodesTable(nodesList: k8s.V1Node[]): string {
-        if (nodesList.length === 0) {
-            return `<div style="padding: 16px; opacity: 0.6;">No nodes found.</div>`;
-        }
-
-        const rows = nodesList.map(n => {
+        let rows = nodesList.map(n => {
             const name = n.metadata?.name || 'unknown';
             const version = n.status?.nodeInfo?.kubeletVersion || 'Unknown';
             const age = this.calculateAge(n.metadata?.creationTimestamp);
@@ -161,15 +161,15 @@ export class ResourceWebview {
             `;
         }).join('');
 
+        if (nodesList.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No nodes found</td></tr>`;
+        }
+
         return TableComponent.getHtml(['Name', 'Taints', 'Roles', 'Version', 'Age', 'Conditions'], rows);
     }
 
     private static buildPodsTable(podsList: k8s.V1Pod[]): string {
-        if (podsList.length === 0) {
-            return `<div style="padding: 16px; opacity: 0.6;">No pods found.</div>`;
-        }
-
-        const rows = podsList.map(p => {
+        let rows = podsList.map(p => {
             const name = p.metadata?.name || 'unknown';
             const ns = p.metadata?.namespace || 'default';
             const age = this.calculateAge(p.metadata?.creationTimestamp);
@@ -217,15 +217,15 @@ export class ResourceWebview {
             `;
         }).join('');
 
+        if (podsList.length === 0) {
+            rows = `<tr><td colspan="15" style="text-align: center; padding: 32px; opacity: 0.5;">No pods found</td></tr>`;
+        }
+
         return TableComponent.getHtml(['Name', 'Namespace', 'Containers', 'Restarts', 'Controlled By', 'Node', 'QoS', 'Age', 'Status'], rows);
     }
 
     private static buildDeploymentsTable(list: k8s.V1Deployment[]): string {
-        if (list.length === 0) {
-            return `<div style="padding: 16px; opacity: 0.6;">No deployments found.</div>`;
-        }
-
-        const rows = list.map(d => {
+        let rows = list.map(d => {
             const name = d.metadata?.name || 'unknown';
             const ns = d.metadata?.namespace || 'default';
             const age = this.calculateAge(d.metadata?.creationTimestamp);
@@ -272,7 +272,60 @@ export class ResourceWebview {
             `;
         }).join('');
 
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No deployments found</td></tr>`;
+        }
+
         return TableComponent.getHtml(['Name', 'Namespace', 'Pods', 'Replicas', 'Age', 'Status'], rows);
+    }
+
+    private static buildJobsTable(list: k8s.V1Job[]): string {
+        let rows = list.map(j => {
+            const name = j.metadata?.name || 'unknown';
+            const ns = j.metadata?.namespace || 'default';
+            const age = this.calculateAge(j.metadata?.creationTimestamp);
+
+            const succeeded = j.status?.succeeded || 0;
+            const completions = j.spec?.completions || 1;
+            const completionsStr = `${succeeded}/${completions}`;
+
+            let status = 'Active';
+            let statusClass = '';
+
+            const conds = j.status?.conditions || [];
+            const completeCond = conds.find(c => c.type === 'Complete');
+            const failedCond = conds.find(c => c.type === 'Failed');
+
+            if (completeCond && completeCond.status === 'True') {
+                status = 'Complete';
+                statusClass = 'status-active';
+            } else if (failedCond && failedCond.status === 'True') {
+                status = 'Failed';
+                statusClass = 'status-terminating';
+            } else if (j.status?.active && j.status.active > 0) {
+                status = 'Running';
+            } else {
+                status = 'Pending';
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td>${completionsStr}</td>
+                    <td>${age}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No jobs found</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Completions', 'Age', 'Conditions'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {

@@ -41,6 +41,18 @@ export class KubernetesClient {
         }
     }
 
+    public async getJobs(contextName: string): Promise<k8s.V1Job[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const batchApi = this.kc.makeApiClient(k8s.BatchV1Api);
+            const res = await batchApi.listJobForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list jobs', e);
+            return [];
+        }
+    }
+
     public async getDeployments(contextName: string): Promise<k8s.V1Deployment[]> {
         try {
             this.kc.setCurrentContext(contextName);
