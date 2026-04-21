@@ -41,6 +41,18 @@ export class KubernetesClient {
         }
     }
 
+    public async getSecrets(contextName: string): Promise<k8s.V1Secret[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listSecretForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list secrets', e);
+            return [];
+        }
+    }
+
     public async getConfigMaps(contextName: string): Promise<k8s.V1ConfigMap[]> {
         try {
             this.kc.setCurrentContext(contextName);
