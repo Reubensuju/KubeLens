@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as k8s from '@kubernetes/client-node';
-import { KubernetesClient } from '../kubernetes/kubernetesClient';
+import { KubernetesClient, ActivePortForward } from '../kubernetes/kubernetesClient';
 import { BaseTreeItem } from './KubeLensTreeDataProvider';
 import { ToolbarComponent } from './components/ToolbarComponent';
 import { TableComponent } from './components/TableComponent';
@@ -50,6 +50,10 @@ export class ResourceWebview {
             const list = await kubeClient.getIngresses(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildIngressesTable(list);
+        } else if (node.resourceType === 'portforwarding' && node.contextName) {
+            const list = await kubeClient.getPortForwards(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildPortForwardsTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -629,6 +633,31 @@ export class ResourceWebview {
         }
 
         return TableComponent.getHtml(['Name', 'Namespace', 'LoadBalancers', 'Rules', 'Age'], rows);
+    }
+
+    private static buildPortForwardsTable(list: ActivePortForward[]): string {
+        let rows = list.map(pf => {
+            const statusClass = pf.status === 'Active' ? 'status-active' : (pf.status === 'Failed' ? 'status-terminating' : '');
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${pf.name}</td>
+                    <td>${pf.namespace}</td>
+                    <td>${pf.kind}</td>
+                    <td>${pf.podPort}</td>
+                    <td>${pf.localPort}</td>
+                    <td>${pf.protocol}</td>
+                    <td class="${statusClass}">${pf.status}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No active port forwarding sessions</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Kind', 'Pod Port', 'Local Port', 'Protocol', 'Status'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {

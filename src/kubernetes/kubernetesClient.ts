@@ -1,5 +1,15 @@
 import * as k8s from '@kubernetes/client-node';
 
+export interface ActivePortForward {
+    name: string;
+    namespace: string;
+    kind: string;
+    podPort: number;
+    localPort: number;
+    protocol: string;
+    status: 'Active' | 'Failed' | 'Pending';
+}
+
 export class KubernetesClient {
     public kc: k8s.KubeConfig;
     public k8sApi: k8s.CoreV1Api | null = null;
@@ -75,6 +85,11 @@ export class KubernetesClient {
             console.error('Failed to list ingresses', e);
             return [];
         }
+    }
+
+    public async getPortForwards(contextName: string): Promise<ActivePortForward[]> {
+        // Placeholder for future Port Forwarding state manager
+        return [];
     }
 
     public async getEndpoints(contextName: string): Promise<k8s.V1Endpoints[]> {
