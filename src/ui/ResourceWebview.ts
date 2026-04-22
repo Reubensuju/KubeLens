@@ -38,6 +38,10 @@ export class ResourceWebview {
             const list = await kubeClient.getSecrets(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildSecretsTable(list);
+        } else if (node.resourceType === 'services' && node.contextName) {
+            const list = await kubeClient.getServices(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildServicesTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -423,6 +427,81 @@ export class ResourceWebview {
         }
 
         return TableComponent.getHtml(['Name', 'Namespace', 'Labels', 'Keys', 'Type', 'Age'], rows);
+    }
+
+    private static buildServicesTable(list: k8s.V1Service[]): string {
+        let rows = list.map(s => {
+            const name = s.metadata?.name || 'unknown';
+            const ns = s.metadata?.namespace || 'default';
+            const age = this.calculateAge(s.metadata?.creationTimestamp);
+            const type = s.spec?.type || 'ClusterIP';
+            const clusterIP = s.spec?.clusterIP || '<span style="opacity:0.5;">None</span>';
+
+            let portsHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (s.spec?.ports && s.spec.ports.length > 0) {
+                const limit = 2;
+                portsHtml = s.spec.ports.slice(0, limit).map(p => {
+                    let portStr = `${p.port}`;
+                    if (p.nodePort) portStr += `:${p.nodePort}`;
+                    portStr += `/${p.protocol || 'TCP'}`;
+                    return `<span class="label-badge">${portStr}</span>`;
+                }).join('');
+                if (s.spec.ports.length > limit) {
+                    portsHtml += `<span class="label-badge">+${s.spec.ports.length - limit} more</span>`;
+                }
+            }
+
+            let externalIps: string[] = [];
+            if (s.spec?.externalIPs) externalIps.push(...s.spec.externalIPs);
+            if (s.status?.loadBalancer?.ingress) {
+                s.status.loadBalancer.ingress.forEach(ing => {
+                    if (ing.ip) externalIps.push(ing.ip);
+                    if (ing.hostname) externalIps.push(ing.hostname);
+                });
+            }
+            const externalIpHtml = externalIps.length > 0 ? externalIps.join(', ') : '<span style="opacity:0.5;">&lt;none&gt;</span>';
+
+            let selectorHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (s.spec?.selector) {
+                const limit = 2;
+                const keys = Object.keys(s.spec.selector);
+                if (keys.length > 0) {
+                    selectorHtml = keys.slice(0, limit).map(k => `<span class="label-badge">${k}=${s.spec!.selector![k]}</span>`).join('');
+                    if (keys.length > limit) {
+                        selectorHtml += `<span class="label-badge">+${keys.length - limit} more</span>`;
+                    }
+                }
+            }
+
+            let status = 'Active';
+            let statusClass = 'status-active';
+            if (type === 'LoadBalancer' && externalIps.length === 0) {
+                status = 'Pending';
+                statusClass = '';
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td>${type}</td>
+                    <td>${clusterIP}</td>
+                    <td>${portsHtml}</td>
+                    <td>${externalIpHtml}</td>
+                    <td>${selectorHtml}</td>
+                    <td>${age}</td>
+                    <td class="${statusClass}">${status}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="15" style="text-align: center; padding: 32px; opacity: 0.5;">No services found</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Type', 'Cluster IP', 'Ports', 'External IP', 'Selector', 'Age', 'Status'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {
