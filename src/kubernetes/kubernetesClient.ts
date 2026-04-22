@@ -1,5 +1,15 @@
 import * as k8s from '@kubernetes/client-node';
 
+export interface ActivePortForward {
+    name: string;
+    namespace: string;
+    kind: string;
+    podPort: number;
+    localPort: number;
+    protocol: string;
+    status: 'Active' | 'Failed' | 'Pending';
+}
+
 export class KubernetesClient {
     public kc: k8s.KubeConfig;
     public k8sApi: k8s.CoreV1Api | null = null;
@@ -37,6 +47,83 @@ export class KubernetesClient {
             return (res as any).items;
         } catch (e) {
             console.error('Failed to list namespaces full', e);
+            return [];
+        }
+    }
+
+    public async getSecrets(contextName: string): Promise<k8s.V1Secret[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listSecretForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list secrets', e);
+            return [];
+        }
+    }
+
+    public async getServices(contextName: string): Promise<k8s.V1Service[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listServiceForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list services', e);
+            return [];
+        }
+    }
+
+    public async getIngresses(contextName: string): Promise<k8s.V1Ingress[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const netApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
+            const res = await netApi.listIngressForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list ingresses', e);
+            return [];
+        }
+    }
+
+    public async getPortForwards(contextName: string): Promise<ActivePortForward[]> {
+        // Placeholder for future Port Forwarding state manager
+        return [];
+    }
+
+    public async getEndpoints(contextName: string): Promise<k8s.V1Endpoints[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listEndpointsForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list endpoints', e);
+            return [];
+        }
+    }
+
+    public async getConfigMaps(contextName: string): Promise<k8s.V1ConfigMap[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listConfigMapForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list configmaps', e);
+            return [];
+        }
+    }
+
+    public async getJobs(contextName: string): Promise<k8s.V1Job[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const batchApi = this.kc.makeApiClient(k8s.BatchV1Api);
+            const res = await batchApi.listJobForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list jobs', e);
             return [];
         }
     }
