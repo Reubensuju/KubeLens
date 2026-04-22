@@ -1,9 +1,14 @@
 {
   "name": "kubelens",
+  "publisher": "skrye",
   "displayName": "KubeLens",
-  "description": "Understand your containers, not just view them. An explainable runtime debugger for Docker systems.",
+  "description": "Professional-grade Kubernetes observability UI directly inside your editor.",
   "version": "0.0.1",
-  "icon": "resources/logo.png",
+  "icon": "resources/kubelens-icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Reubensuju/KubeLens.git"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
