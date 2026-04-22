@@ -65,6 +65,18 @@ export class KubernetesClient {
         }
     }
 
+    public async getIngresses(contextName: string): Promise<k8s.V1Ingress[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const netApi = this.kc.makeApiClient(k8s.NetworkingV1Api);
+            const res = await netApi.listIngressForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list ingresses', e);
+            return [];
+        }
+    }
+
     public async getEndpoints(contextName: string): Promise<k8s.V1Endpoints[]> {
         try {
             this.kc.setCurrentContext(contextName);

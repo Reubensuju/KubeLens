@@ -46,6 +46,10 @@ export class ResourceWebview {
             const list = await kubeClient.getEndpoints(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildEndpointsTable(list);
+        } else if (node.resourceType === 'ingresses' && node.contextName) {
+            const list = await kubeClient.getIngresses(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildIngressesTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -558,6 +562,73 @@ export class ResourceWebview {
         }
 
         return TableComponent.getHtml(['Name', 'Namespace', 'Endpoints', 'Age'], rows);
+    }
+
+    private static buildIngressesTable(list: k8s.V1Ingress[]): string {
+        let rows = list.map(i => {
+            const name = i.metadata?.name || 'unknown';
+            const ns = i.metadata?.namespace || 'default';
+            const age = this.calculateAge(i.metadata?.creationTimestamp);
+
+            let lbs: string[] = [];
+            if (i.status?.loadBalancer?.ingress) {
+                i.status.loadBalancer.ingress.forEach(ing => {
+                    if (ing.ip) lbs.push(ing.ip);
+                    if (ing.hostname) lbs.push(ing.hostname);
+                });
+            }
+            let lbsHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (lbs.length > 0) {
+                const limit = 2;
+                lbsHtml = lbs.slice(0, limit).map(v => `<span class="label-badge">${v}</span>`).join('');
+                if (lbs.length > limit) {
+                    lbsHtml += `<span class="label-badge">+${lbs.length - limit} more</span>`;
+                }
+            }
+
+            let ruleStrings: string[] = [];
+            if (i.spec?.rules) {
+                i.spec.rules.forEach(r => {
+                    const host = r.host || '*';
+                    if (r.http?.paths && r.http.paths.length > 0) {
+                        r.http.paths.forEach(p => {
+                            ruleStrings.push(`${host}${p.path || ''}`);
+                        });
+                    } else {
+                        ruleStrings.push(host);
+                    }
+                });
+            } else if (i.spec?.defaultBackend) {
+                ruleStrings.push('Default Backend');
+            }
+
+            let rulesHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (ruleStrings.length > 0) {
+                const limit = 3;
+                rulesHtml = ruleStrings.slice(0, limit).map(v => `<span class="label-badge">${v}</span>`).join('');
+                if (ruleStrings.length > limit) {
+                    rulesHtml += `<span class="label-badge">+${ruleStrings.length - limit} more</span>`;
+                }
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td>${lbsHtml}</td>
+                    <td>${rulesHtml}</td>
+                    <td>${age}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No ingresses found</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'LoadBalancers', 'Rules', 'Age'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {
