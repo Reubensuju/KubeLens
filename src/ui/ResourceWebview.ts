@@ -42,6 +42,10 @@ export class ResourceWebview {
             const list = await kubeClient.getServices(node.contextName);
             itemCount = list.length;
             contentHtml = this.buildServicesTable(list);
+        } else if (node.resourceType === 'endpoints' && node.contextName) {
+            const list = await kubeClient.getEndpoints(node.contextName);
+            itemCount = list.length;
+            contentHtml = this.buildEndpointsTable(list);
         } else {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
@@ -502,6 +506,58 @@ export class ResourceWebview {
         }
 
         return TableComponent.getHtml(['Name', 'Namespace', 'Type', 'Cluster IP', 'Ports', 'External IP', 'Selector', 'Age', 'Status'], rows);
+    }
+
+    private static buildEndpointsTable(list: k8s.V1Endpoints[]): string {
+        let rows = list.map(ep => {
+            const name = ep.metadata?.name || 'unknown';
+            const ns = ep.metadata?.namespace || 'default';
+            const age = this.calculateAge(ep.metadata?.creationTimestamp);
+
+            let endpointIps: string[] = [];
+            if (ep.subsets) {
+                ep.subsets.forEach(subset => {
+                    const addresses = subset.addresses || [];
+                    const ports = subset.ports || [];
+
+                    if (addresses.length > 0 && ports.length > 0) {
+                        addresses.forEach(addr => {
+                            ports.forEach(port => {
+                                endpointIps.push(`${addr.ip}:${port.port}`);
+                            });
+                        });
+                    } else if (addresses.length > 0) {
+                        addresses.forEach(addr => endpointIps.push(addr.ip));
+                    }
+                });
+            }
+
+            let endpointsHtml = '<span style="opacity:0.5;">&lt;none&gt;</span>';
+            if (endpointIps.length > 0) {
+                const limit = 3;
+                endpointsHtml = endpointIps.slice(0, limit).map(ip => `<span class="label-badge">${ip}</span>`).join('');
+                if (endpointIps.length > limit) {
+                    endpointsHtml += `<span class="label-badge">+${endpointIps.length - limit} more</span>`;
+                }
+            }
+
+            return `
+                <tr class="searchable-row">
+                    <td><div class="checkbox"></div></td>
+                    <td style="font-weight: bold;">${name}</td>
+                    <td>${ns}</td>
+                    <td style="width: 50%;">${endpointsHtml}</td>
+                    <td>${age}</td>
+                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                </tr>
+            `;
+        }).join('');
+
+        if (list.length === 0) {
+            rows = `<tr><td colspan="10" style="text-align: center; padding: 32px; opacity: 0.5;">No endpoints found</td></tr>`;
+        }
+
+        return TableComponent.getHtml(['Name', 'Namespace', 'Endpoints', 'Age'], rows);
     }
 
     private static calculateAge(creationTimestamp?: Date): string {

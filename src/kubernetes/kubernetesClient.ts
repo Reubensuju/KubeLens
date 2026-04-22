@@ -65,6 +65,18 @@ export class KubernetesClient {
         }
     }
 
+    public async getEndpoints(contextName: string): Promise<k8s.V1Endpoints[]> {
+        try {
+            this.kc.setCurrentContext(contextName);
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listEndpointsForAllNamespaces();
+            return (res as any).items;
+        } catch (e) {
+            console.error('Failed to list endpoints', e);
+            return [];
+        }
+    }
+
     public async getConfigMaps(contextName: string): Promise<k8s.V1ConfigMap[]> {
         try {
             this.kc.setCurrentContext(contextName);
