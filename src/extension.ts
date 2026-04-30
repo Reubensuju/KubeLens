@@ -54,8 +54,14 @@ export function activate(context: vscode.ExtensionContext) {
                             content: stdout
                         });
                         
+                        // Enforce a downward split layout (two rows)
+                        await vscode.commands.executeCommand('vscode.setEditorLayout', {
+                            orientation: 1,
+                            groups: [{ size: 0.5 }, { size: 0.5 }]
+                        });
+                        
                         await vscode.window.showTextDocument(doc, {
-                            viewColumn: vscode.ViewColumn.Beside,
+                            viewColumn: vscode.ViewColumn.Two,
                             preview: true
                         });
                     } catch (e: any) {
