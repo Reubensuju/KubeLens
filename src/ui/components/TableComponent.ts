@@ -2,7 +2,6 @@ export class TableComponent {
     public static getStyle(): string {
         return `
             .table-container {
-                overflow-x: auto;
                 width: 100%;
             }
             .data-table {
@@ -71,6 +70,61 @@ export class TableComponent {
                 background: var(--vscode-checkbox-background);
                 display: inline-block;
                 vertical-align: middle;
+            }
+            .action-btn {
+                background: transparent;
+                border: 1px solid transparent;
+                color: inherit;
+                cursor: pointer;
+                padding: 4px;
+                border-radius: 4px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0.6;
+                transition: all 0.2s;
+            }
+            .action-btn:hover {
+                background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+                opacity: 1;
+            }
+            .action-menu {
+                position: relative;
+                display: inline-block;
+            }
+            .action-menu summary {
+                list-style: none;
+                outline: none;
+            }
+            .action-menu summary::-webkit-details-marker {
+                display: none;
+            }
+            .action-dropdown {
+                position: absolute;
+                right: 0;
+                top: 100%;
+                z-index: 1000;
+                background-color: var(--vscode-dropdown-background);
+                border: 1px solid var(--vscode-dropdown-border);
+                border-radius: 4px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+                padding: 4px 0;
+                min-width: 120px;
+                text-align: left;
+            }
+            .action-dropdown-item {
+                padding: 6px 12px;
+                cursor: pointer;
+                color: var(--vscode-dropdown-foreground);
+            }
+            .action-dropdown-item:hover {
+                background-color: var(--vscode-list-activeSelectionBackground);
+                color: var(--vscode-list-activeSelectionForeground);
+            }
+            /* Clicking outside logic handled via CSS if possible, but details close manually. Here we keep it simple. */
+            details[open] summary.action-btn {
+                background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+                opacity: 1;
             }
         `;
     }

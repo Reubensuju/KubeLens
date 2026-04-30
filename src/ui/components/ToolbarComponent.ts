@@ -177,6 +177,16 @@ export class ToolbarComponent {
                     }
                 });
             }
+
+            // Close details dropdowns when clicking outside or clicking another dropdown
+            document.addEventListener('click', (event) => {
+                const targetDropdown = event.target.closest('details.action-menu');
+                document.querySelectorAll('details.action-menu[open]').forEach(details => {
+                    if (details !== targetDropdown) {
+                        details.removeAttribute('open');
+                    }
+                });
+            });
         `;
     }
 }
