@@ -12,20 +12,18 @@ export interface ActivePortForward {
 
 export class KubernetesClient {
     public kc: k8s.KubeConfig;
-    public k8sApi: k8s.CoreV1Api | null = null;
 
     constructor() {
         this.kc = new k8s.KubeConfig();
         try {
             this.kc.loadFromDefault();
-            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
         } catch (e) {
             console.error('Failed to load kubeconfig', e);
         }
     }
 
     public isConfigured(): boolean {
-        return this.k8sApi !== null;
+        return this.kc.contexts && this.kc.contexts.length > 0;
     }
 
     public getContexts(): string[] {
@@ -39,11 +37,10 @@ export class KubernetesClient {
     }
 
     public async getNamespacesFull(contextName: string): Promise<k8s.V1Namespace[]> {
-        if (!this.k8sApi) return [];
         try {
             this.kc.setCurrentContext(contextName);
-            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
-            const res = await this.k8sApi.listNamespace();
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listNamespace();
             return (res as any).items;
         } catch (e) {
             console.error('Failed to list namespaces full', e);
@@ -141,11 +138,10 @@ export class KubernetesClient {
     }
 
     public async getPodsAllNamespaces(contextName: string): Promise<k8s.V1Pod[]> {
-        if (!this.k8sApi) return [];
         try {
             this.kc.setCurrentContext(contextName);
-            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
-            const res = await this.k8sApi.listPodForAllNamespaces();
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listPodForAllNamespaces();
             return (res as any).items;
         } catch (e) {
             console.error('Failed to list pods', e);
@@ -154,11 +150,10 @@ export class KubernetesClient {
     }
 
     public async getNodes(contextName: string): Promise<k8s.V1Node[]> {
-        if (!this.k8sApi) return [];
         try {
             this.kc.setCurrentContext(contextName);
-            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
-            const res = await this.k8sApi.listNode();
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listNode();
             return (res as any).items;
         } catch (e) {
             console.error('Failed to list nodes', e);
@@ -167,11 +162,10 @@ export class KubernetesClient {
     }
 
     public async getNamespaces(contextName: string): Promise<string[]> {
-        if (!this.k8sApi) return [];
         try {
             this.kc.setCurrentContext(contextName);
-            this.k8sApi = this.kc.makeApiClient(k8s.CoreV1Api);
-            const res = await this.k8sApi.listNamespace();
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listNamespace();
             return (res as any).items.map((ns: any) => ns.metadata?.name || 'unknown');
         } catch (e) {
             console.error('Failed to list namespaces', e);
@@ -180,9 +174,9 @@ export class KubernetesClient {
     }
 
     public async getPods(namespace: string): Promise<k8s.V1Pod[]> {
-        if (!this.k8sApi) return [];
         try {
-            const res = await this.k8sApi.listNamespacedPod({ namespace });
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.listNamespacedPod({ namespace });
             return (res as any).items;
         } catch (e) {
             console.error('Failed to list pods for namespace', namespace, e);
@@ -191,9 +185,9 @@ export class KubernetesClient {
     }
 
     public async getPodLogs(namespace: string, podName: string): Promise<string> {
-        if (!this.k8sApi) return "";
         try {
-            const res = await this.k8sApi.readNamespacedPodLog({ name: podName, namespace, tailLines: 200 });
+            const coreApi = this.kc.makeApiClient(k8s.CoreV1Api);
+            const res = await coreApi.readNamespacedPodLog({ name: podName, namespace, tailLines: 200 });
             return typeof res === 'string' ? res : (res as any).toString();
         } catch (e) {
             return `Failed to fetch pod logs: ${(e as Error).message}`;
