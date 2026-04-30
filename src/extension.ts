@@ -36,6 +36,33 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             clusterPanels.set(node.contextName, panel);
+
+            panel.webview.onDidReceiveMessage(async (message) => {
+                if (message.command === 'edit') {
+                    try {
+                        const { exec } = require('child_process');
+                        const util = require('util');
+                        const execAsync = util.promisify(exec);
+                        
+                        const nsArg = (message.namespace && message.namespace !== 'undefined' && message.namespace !== 'null') ? `-n ${message.namespace}` : '';
+                        const cmd = `kubectl get ${message.kind} ${message.name} ${nsArg} -o yaml --context ${node.contextName}`;
+                        
+                        const { stdout } = await execAsync(cmd);
+                        
+                        const doc = await vscode.workspace.openTextDocument({
+                            language: 'yaml',
+                            content: stdout
+                        });
+                        
+                        await vscode.window.showTextDocument(doc, {
+                            viewColumn: vscode.ViewColumn.Beside,
+                            preview: true
+                        });
+                    } catch (e: any) {
+                        vscode.window.showErrorMessage(`Failed to fetch resource spec: ${e.message}`);
+                    }
+                }
+            });
         }
 
         // Show a temporary loading state

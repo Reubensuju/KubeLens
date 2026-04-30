@@ -98,6 +98,8 @@ export class ToolbarComponent {
 
     public static getScript(): string {
         return `
+            window.vscode = acquireVsCodeApi();
+            
             const searchInput = document.getElementById('searchInput');
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');

@@ -119,8 +119,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'namespace', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'namespace', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -194,8 +194,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'node', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'node', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -258,8 +258,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'pod', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'pod', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -321,8 +321,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -378,8 +378,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'job', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'job', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -424,8 +424,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'configmap', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'configmap', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -483,8 +483,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'secret', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'secret', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -566,8 +566,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'service', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'service', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -626,8 +626,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'endpoints', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'endpoints', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -701,8 +701,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'ingress', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'ingress', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
@@ -736,8 +736,8 @@ export class ResourceWebview {
                             <i class="codicon codicon-kebab-vertical"></i>
                         </summary>
                         <div class="action-dropdown">
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', name: '${name}', namespace: '${ns}'})">Edit</div>
-                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', name: '${name}', namespace: '${ns}'})">Delete</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: '${pf.kind}', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: '${pf.kind}', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
                 </tr>
