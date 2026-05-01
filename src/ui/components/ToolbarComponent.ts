@@ -186,6 +186,32 @@ export class ToolbarComponent {
             const namespaceDropdownDetails = document.getElementById('namespaceDropdownDetails');
             const namespaceOptions = document.querySelectorAll('.namespace-option');
             
+            // Restore state
+            const previousState = window.vscode.getState() || {};
+            if (previousState.selectedNamespace && namespaceDropdownSummary) {
+                const { val, text } = previousState.selectedNamespace;
+                // Only restore if the previously selected namespace actually exists on this page
+                // (or if it's 'all')
+                let exists = val === 'all';
+                if (!exists) {
+                    namespaceOptions.forEach(opt => {
+                        if (opt.getAttribute('data-value') === val) exists = true;
+                    });
+                }
+                
+                if (exists) {
+                    namespaceDropdownSummary.setAttribute('data-value', val);
+                    selectedNamespaceText.innerText = text;
+                    namespaceOptions.forEach(opt => {
+                        if (opt.getAttribute('data-value') === val) {
+                            opt.classList.add('active');
+                        } else {
+                            opt.classList.remove('active');
+                        }
+                    });
+                }
+            }
+            
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');
             
@@ -290,6 +316,12 @@ export class ToolbarComponent {
                     namespaceDropdownSummary.setAttribute('data-value', val);
                     selectedNamespaceText.innerText = text;
                     
+                    // Save state
+                    window.vscode.setState({ 
+                        ...(window.vscode.getState() || {}),
+                        selectedNamespace: { val, text } 
+                    });
+                    
                     // Close details
                     namespaceDropdownDetails.removeAttribute('open');
                     
@@ -297,6 +329,9 @@ export class ToolbarComponent {
                     applyFilters();
                 });
             });
+            
+            // Initial filter application on load (to enforce restored state)
+            applyFilters();
 
             // Close details dropdowns when clicking outside or clicking another dropdown
             document.addEventListener('click', (event) => {
