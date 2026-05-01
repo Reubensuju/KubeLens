@@ -3,7 +3,7 @@
   "publisher": "skrye",
   "displayName": "KubeLens",
   "description": "Professional-grade Kubernetes observability UI directly inside your editor.",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "icon": "resources/kubelens-icon.png",
   "repository": {
     "type": "git",
