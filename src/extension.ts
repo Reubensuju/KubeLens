@@ -5,6 +5,9 @@ import { ResourceWebview } from './ui/ResourceWebview';
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
 
+const outputChannels: Map<string, vscode.OutputChannel> = new Map();
+const activeLogProcesses: Map<string, any> = new Map();
+
 class KubeLensContentProvider implements vscode.TextDocumentContentProvider {
     private contentMap = new Map<string, string>();
 
@@ -88,25 +91,62 @@ export function activate(context: vscode.ExtensionContext) {
                         vscode.window.showErrorMessage(`Failed to fetch resource spec: ${e.message}`);
                     }
                 } else if (command === 'logs') {
-                    const terminalName = `Logs: ${name}`;
-                    const logCmd = `kubectl logs -f ${kind}/${name} ${nsArg} --context ${node.contextName}`;
-                    
-                    // Create a terminal in the Editor area
-                    const terminal = vscode.window.createTerminal({
-                        name: terminalName,
-                        location: vscode.TerminalLocation.Editor,
-                        iconPath: new vscode.ThemeIcon('output')
-                    });
-                    
-                    terminal.sendText(logCmd);
-                    terminal.show();
-
-                    // Ensure layout is split so terminal appears at bottom if possible
-                    // Note: TerminalEditor usually takes a full editor column.
+                    // Ensure layout is split so terminal appears at bottom
                     await vscode.commands.executeCommand('vscode.setEditorLayout', {
                         orientation: 1,
                         groups: [{ size: 0.5 }, { size: 0.5 }]
                     });
+
+                    const terminalName = `Logs: ${name}`;
+                    
+                    const writeEmitter = new vscode.EventEmitter<string>();
+                    const closeEmitter = new vscode.EventEmitter<number | void>();
+                    let logProcess: any = null;
+
+                    const pty: vscode.Pseudoterminal = {
+                        onDidWrite: writeEmitter.event,
+                        onDidClose: closeEmitter.event,
+                        open: () => {
+                            const { spawn } = require('child_process');
+                            const args = ['logs', '-f', `${kind}/${name}`, '--context', node.contextName!];
+                            if (nsArg) {
+                                args.push('-n', namespace);
+                            }
+                            
+                            logProcess = spawn('kubectl', args);
+                            
+                            logProcess.stdout.on('data', (data: Buffer) => {
+                                // Pseudoterminals require \r\n for line breaks
+                                writeEmitter.fire(data.toString().replace(/\r?\n/g, '\r\n'));
+                            });
+                            
+                            logProcess.stderr.on('data', (data: Buffer) => {
+                                writeEmitter.fire(data.toString().replace(/\r?\n/g, '\r\n'));
+                            });
+
+                            logProcess.on('close', (code: number) => {
+                                writeEmitter.fire(`\r\n[Process exited with code ${code}]\r\n`);
+                            });
+                        },
+                        close: () => {
+                            if (logProcess) {
+                                logProcess.kill();
+                            }
+                        },
+                        handleInput: () => {
+                            // Ignore user input to make it strictly read-only!
+                        }
+                    };
+
+                    const terminal = vscode.window.createTerminal({
+                        name: terminalName,
+                        pty,
+                        location: { viewColumn: vscode.ViewColumn.Two },
+                        iconPath: new vscode.ThemeIcon('output'),
+                        isTransient: true // Prevents prompts when closing
+                    });
+                    
+                    terminal.show();
                 }
             });
         }
