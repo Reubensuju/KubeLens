@@ -5,11 +5,27 @@ import { ResourceWebview } from './ui/ResourceWebview';
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
 
+class KubeLensContentProvider implements vscode.TextDocumentContentProvider {
+    private contentMap = new Map<string, string>();
+
+    public setContent(uri: vscode.Uri, content: string) {
+        this.contentMap.set(uri.toString(), content);
+    }
+
+    public provideTextDocumentContent(uri: vscode.Uri): string {
+        return this.contentMap.get(uri.toString()) || 'No content found.';
+    }
+}
+const kubelensProvider = new KubeLensContentProvider();
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('KubeLens is now active!');
 
     const kubeProvider = new KubeLensTreeDataProvider();
     vscode.window.registerTreeDataProvider('kubelens.clustersView', kubeProvider);
+    
+    // Register custom URI scheme for read-only YAML specs
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('kubelens', kubelensProvider));
 
     let refreshCommand = vscode.commands.registerCommand('kubelens.refreshContainers', () => {
         kubeProvider.refresh();
@@ -51,17 +67,13 @@ export function activate(context: vscode.ExtensionContext) {
                         
                         const kindCapitalized = message.kind.charAt(0).toUpperCase() + message.kind.slice(1);
                         const tabTitle = `${kindCapitalized} - ${message.name}.yaml`;
-                        const uri = vscode.Uri.parse(`untitled:${tabTitle}`);
+                        const uri = vscode.Uri.parse(`kubelens:${tabTitle}`);
                         
+                        // Set the content in our custom provider
+                        kubelensProvider.setContent(uri, stdout);
+                        
+                        // Open the read-only virtual document
                         const doc = await vscode.workspace.openTextDocument(uri);
-                        
-                        const edit = new vscode.WorkspaceEdit();
-                        const fullRange = new vscode.Range(
-                            doc.positionAt(0),
-                            doc.positionAt(doc.getText().length)
-                        );
-                        edit.replace(uri, fullRange, stdout);
-                        await vscode.workspace.applyEdit(edit);
                         
                         // Set the language explicitly just in case
                         vscode.languages.setTextDocumentLanguage(doc, 'yaml');
