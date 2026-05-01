@@ -59,29 +59,64 @@ export class ToolbarComponent {
                 color: var(--vscode-focusBorder);
                 opacity: 1;
             }
-            .namespace-filter-container {
-                display: flex;
-                align-items: center;
+            
+            /* Custom Dropdown Styles */
+            .namespace-dropdown-details {
+                position: relative;
+                font-family: var(--vscode-font-family);
+                font-size: 13px;
                 margin-right: 16px;
                 flex-shrink: 0;
             }
-            .namespace-dropdown {
+            .namespace-dropdown-summary {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
                 background-color: var(--vscode-dropdown-background);
                 color: var(--vscode-dropdown-foreground);
                 border: 1px solid var(--vscode-dropdown-border);
-                padding: 0 24px 0 8px; /* Padding right avoids overlapping the arrow */
                 border-radius: 2px;
-                outline: none;
-                font-family: var(--vscode-font-family);
-                font-size: 13px;
+                padding: 0 8px;
                 width: 250px;
                 height: 28px;
                 cursor: pointer;
                 box-sizing: border-box;
+                list-style: none; /* remove default triangle */
+                user-select: none;
             }
-            .namespace-dropdown:focus {
+            .namespace-dropdown-summary::-webkit-details-marker {
+                display: none;
+            }
+            .namespace-dropdown-summary:focus {
                 border-color: var(--vscode-focusBorder);
+                outline: none;
             }
+            .namespace-dropdown-menu {
+                position: absolute;
+                top: calc(100% + 2px); /* Dropdown appears below */
+                left: 0;
+                width: 100%;
+                background-color: var(--vscode-dropdown-background);
+                border: 1px solid var(--vscode-dropdown-border);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+                border-radius: 2px;
+                z-index: 1000;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            .namespace-option {
+                padding: 6px 8px;
+                cursor: pointer;
+                color: var(--vscode-dropdown-foreground);
+            }
+            .namespace-option:hover {
+                background-color: var(--vscode-list-hoverBackground);
+            }
+            .namespace-option.active {
+                background-color: var(--vscode-list-activeSelectionBackground);
+                color: var(--vscode-list-activeSelectionForeground);
+            }
+
             .toolbar-actions {
                 display: flex;
                 align-items: center;
@@ -107,14 +142,18 @@ export class ToolbarComponent {
     public static getHtml(placeholderText: string, itemCount: number, showNamespaceFilter: boolean = false, allNamespaces: string[] = []): string {
         let nsFilterHtml = '';
         if (showNamespaceFilter) {
-            const optionsHtml = allNamespaces.map(ns => `<option value="${ns}">${ns}</option>`).join('');
+            const optionsHtml = allNamespaces.map(ns => `<div class="namespace-option" data-value="${ns}">${ns}</div>`).join('');
             nsFilterHtml = `
-                <div class="namespace-filter-container">
-                    <select id="namespaceFilter" class="namespace-dropdown">
-                        <option value="all">All Namespaces</option>
+                <details class="namespace-dropdown-details" id="namespaceDropdownDetails">
+                    <summary class="namespace-dropdown-summary" id="namespaceDropdownSummary" data-value="all">
+                        <span id="selectedNamespaceText" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">All Namespaces</span>
+                        <i class="codicon codicon-chevron-down"></i>
+                    </summary>
+                    <div class="namespace-dropdown-menu">
+                        <div class="namespace-option active" data-value="all">All Namespaces</div>
                         ${optionsHtml}
-                    </select>
-                </div>
+                    </div>
+                </details>
             `;
         }
 
@@ -142,7 +181,11 @@ export class ToolbarComponent {
             window.vscode = acquireVsCodeApi();
             
             const searchInput = document.getElementById('searchInput');
-            const namespaceFilter = document.getElementById('namespaceFilter');
+            const namespaceDropdownSummary = document.getElementById('namespaceDropdownSummary');
+            const selectedNamespaceText = document.getElementById('selectedNamespaceText');
+            const namespaceDropdownDetails = document.getElementById('namespaceDropdownDetails');
+            const namespaceOptions = document.querySelectorAll('.namespace-option');
+            
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');
             
@@ -176,7 +219,7 @@ export class ToolbarComponent {
             
             function applyFilters() {
                 const rawQuery = searchInput ? searchInput.value : '';
-                const nsFilterVal = namespaceFilter ? namespaceFilter.value : 'all';
+                const nsFilterVal = namespaceDropdownSummary ? namespaceDropdownSummary.getAttribute('data-value') : 'all';
                 let visibleCount = 0;
                 
                 rows.forEach(row => {
@@ -230,14 +273,35 @@ export class ToolbarComponent {
             if (searchInput) {
                 searchInput.addEventListener('input', applyFilters);
             }
-            if (namespaceFilter) {
-                namespaceFilter.addEventListener('change', applyFilters);
-            }
+
+            // Handle custom dropdown options click
+            namespaceOptions.forEach(option => {
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    
+                    // Remove active from all
+                    namespaceOptions.forEach(opt => opt.classList.remove('active'));
+                    // Add active to clicked
+                    option.classList.add('active');
+                    
+                    // Update summary
+                    const val = option.getAttribute('data-value');
+                    const text = option.innerText;
+                    namespaceDropdownSummary.setAttribute('data-value', val);
+                    selectedNamespaceText.innerText = text;
+                    
+                    // Close details
+                    namespaceDropdownDetails.removeAttribute('open');
+                    
+                    // Trigger filter
+                    applyFilters();
+                });
+            });
 
             // Close details dropdowns when clicking outside or clicking another dropdown
             document.addEventListener('click', (event) => {
-                const targetDropdown = event.target.closest('details.action-menu');
-                document.querySelectorAll('details.action-menu[open]').forEach(details => {
+                const targetDropdown = event.target.closest('details.action-menu, details.namespace-dropdown-details');
+                document.querySelectorAll('details.action-menu[open], details.namespace-dropdown-details[open]').forEach(details => {
                     if (details !== targetDropdown) {
                         details.removeAttribute('open');
                     }
