@@ -15,8 +15,11 @@ export class ToolbarComponent {
                 border-radius: 2px;
                 padding: 0 4px;
                 width: 300px;
+                height: 28px;
                 margin-right: 16px;
                 transition: border-color 0.2s;
+                box-sizing: border-box;
+                flex-shrink: 0;
             }
             .search-container:focus-within {
                 border-color: var(--vscode-focusBorder);
@@ -27,7 +30,8 @@ export class ToolbarComponent {
                 color: var(--vscode-input-foreground);
                 outline: none;
                 flex-grow: 1;
-                padding: 5px 4px;
+                padding: 0;
+                height: 100%;
                 font-family: var(--vscode-font-family);
             }
             .search-container input::placeholder {
@@ -55,6 +59,29 @@ export class ToolbarComponent {
                 color: var(--vscode-focusBorder);
                 opacity: 1;
             }
+            .namespace-filter-container {
+                display: flex;
+                align-items: center;
+                margin-right: 16px;
+                flex-shrink: 0;
+            }
+            .namespace-dropdown {
+                background-color: var(--vscode-dropdown-background);
+                color: var(--vscode-dropdown-foreground);
+                border: 1px solid var(--vscode-dropdown-border);
+                padding: 0 24px 0 8px; /* Padding right avoids overlapping the arrow */
+                border-radius: 2px;
+                outline: none;
+                font-family: var(--vscode-font-family);
+                font-size: 13px;
+                width: 250px;
+                height: 28px;
+                cursor: pointer;
+                box-sizing: border-box;
+            }
+            .namespace-dropdown:focus {
+                border-color: var(--vscode-focusBorder);
+            }
             .toolbar-actions {
                 display: flex;
                 align-items: center;
@@ -77,9 +104,23 @@ export class ToolbarComponent {
         `;
     }
 
-    public static getHtml(placeholderText: string, itemCount: number): string {
+    public static getHtml(placeholderText: string, itemCount: number, showNamespaceFilter: boolean = false, allNamespaces: string[] = []): string {
+        let nsFilterHtml = '';
+        if (showNamespaceFilter) {
+            const optionsHtml = allNamespaces.map(ns => `<option value="${ns}">${ns}</option>`).join('');
+            nsFilterHtml = `
+                <div class="namespace-filter-container">
+                    <select id="namespaceFilter" class="namespace-dropdown">
+                        <option value="all">All Namespaces</option>
+                        ${optionsHtml}
+                    </select>
+                </div>
+            `;
+        }
+
         return `
             <div class="toolbar">
+                ${nsFilterHtml}
                 <div class="search-container">
                     <input type="text" id="searchInput" placeholder="${placeholderText}" />
                     <div class="search-controls">
@@ -101,6 +142,7 @@ export class ToolbarComponent {
             window.vscode = acquireVsCodeApi();
             
             const searchInput = document.getElementById('searchInput');
+            const namespaceFilter = document.getElementById('namespaceFilter');
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');
             
@@ -121,7 +163,7 @@ export class ToolbarComponent {
             }
 
             function triggerSearch() {
-                if (searchInput) searchInput.dispatchEvent(new Event('input'));
+                applyFilters();
             }
 
             if (btnMatchCase) btnMatchCase.onclick = () => { matchCase = toggleBtn(btnMatchCase, matchCase); triggerSearch(); };
@@ -132,52 +174,64 @@ export class ToolbarComponent {
                 return s.split('').map(c => '.*+?^$(){}[]|\\\\'.includes(c) ? '\\\\' + c : c).join('');
             }
             
-            if (searchInput) {
-                searchInput.addEventListener('input', (e) => {
-                    const rawQuery = e.target.value;
-                    let visibleCount = 0;
+            function applyFilters() {
+                const rawQuery = searchInput ? searchInput.value : '';
+                const nsFilterVal = namespaceFilter ? namespaceFilter.value : 'all';
+                let visibleCount = 0;
+                
+                rows.forEach(row => {
+                    const rawText = row.innerText;
+                    let isMatch = true;
+                    let matchesNs = true;
                     
-                    rows.forEach(row => {
-                        const rawText = row.innerText;
-                        let isMatch = true;
-                        
-                        if (rawQuery) {
-                            try {
-                                if (useRegex) {
-                                    const flags = matchCase ? 'g' : 'gi';
-                                    let regexStr = rawQuery;
-                                    if (wholeWord) regexStr = '\\\\b' + regexStr + '\\\\b';
-                                    const regex = new RegExp(regexStr, flags);
-                                    isMatch = regex.test(rawText);
+                    if (nsFilterVal !== 'all') {
+                        const rowNs = row.getAttribute('data-namespace');
+                        matchesNs = (rowNs === nsFilterVal);
+                    }
+                    
+                    if (rawQuery) {
+                        try {
+                            if (useRegex) {
+                                const flags = matchCase ? 'g' : 'gi';
+                                let regexStr = rawQuery;
+                                if (wholeWord) regexStr = '\\\\b' + regexStr + '\\\\b';
+                                const regex = new RegExp(regexStr, flags);
+                                isMatch = regex.test(rawText);
+                            } else {
+                                let targetText = matchCase ? rawText : rawText.toLowerCase();
+                                let searchTxt = matchCase ? rawQuery : rawQuery.toLowerCase();
+                                
+                                if (wholeWord) {
+                                    const escaped = escapeStr(searchTxt);
+                                    const wordRegex = new RegExp('\\\\b' + escaped + '\\\\b', matchCase ? '' : 'i');
+                                    isMatch = wordRegex.test(rawText);
                                 } else {
-                                    let targetText = matchCase ? rawText : rawText.toLowerCase();
-                                    let searchTxt = matchCase ? rawQuery : rawQuery.toLowerCase();
-                                    
-                                    if (wholeWord) {
-                                        const escaped = escapeStr(searchTxt);
-                                        const wordRegex = new RegExp('\\\\b' + escaped + '\\\\b', matchCase ? '' : 'i');
-                                        isMatch = wordRegex.test(rawText);
-                                    } else {
-                                        isMatch = targetText.includes(searchTxt);
-                                    }
+                                    isMatch = targetText.includes(searchTxt);
                                 }
-                            } catch (err) {
-                                isMatch = false; 
                             }
+                        } catch (err) {
+                            isMatch = false; 
                         }
+                    }
 
-                        if (isMatch) {
-                            row.style.display = '';
-                            visibleCount++;
-                        } else {
-                            row.style.display = 'none';
-                        }
-                    });
-                    
-                    if (countDisplay) {
-                        countDisplay.innerText = visibleCount === 1 ? '1 item' : visibleCount + ' items';
+                    if (isMatch && matchesNs) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
                     }
                 });
+                
+                if (countDisplay) {
+                    countDisplay.innerText = visibleCount === 1 ? '1 item' : visibleCount + ' items';
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
+            if (namespaceFilter) {
+                namespaceFilter.addEventListener('change', applyFilters);
             }
 
             // Close details dropdowns when clicking outside or clicking another dropdown

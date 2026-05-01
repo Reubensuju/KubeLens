@@ -58,6 +58,19 @@ export class ResourceWebview {
             contentHtml = `<p style="padding: 16px;">Renderer for ${node.resourceType} is not implemented yet.</p>`;
         }
 
+        const showNamespaceFilter = !['namespaces', 'nodes'].includes(node.resourceType || '');
+        let allNamespaces: string[] = [];
+
+        if (showNamespaceFilter && node.contextName) {
+            try {
+                const nsList = await kubeClient.getNamespacesFull(node.contextName);
+                allNamespaces = nsList.map(n => n.metadata?.name).filter(Boolean) as string[];
+                allNamespaces.sort();
+            } catch (e) {
+                // Ignore error if we cannot fetch namespaces
+            }
+        }
+
         return `
             <!DOCTYPE html>
             <html lang="en">
@@ -79,7 +92,7 @@ export class ResourceWebview {
                 </style>
             </head>
             <body>
-                ${ToolbarComponent.getHtml(`Search ${node.label}...`, itemCount)}
+                ${ToolbarComponent.getHtml(`Search ${node.label}...`, itemCount, showNamespaceFilter, allNamespaces)}
                 ${contentHtml}
                 <script>
                     ${ToolbarComponent.getScript()}
@@ -108,7 +121,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="width: 20%;">${name}</td>
                     <td style="width: 40%;">${labelsHtml}</td>
@@ -181,7 +194,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="width: 25%; font-weight: bold;">${name}</td>
                     <td style="width: 25%;">${taintsHtml}</td>
@@ -242,7 +255,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -308,7 +321,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -366,7 +379,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -413,7 +426,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -470,7 +483,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -550,7 +563,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -615,7 +628,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -689,7 +702,7 @@ export class ResourceWebview {
             }
 
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${name}</td>
                     <td>${ns}</td>
@@ -722,7 +735,7 @@ export class ResourceWebview {
             const ns = pf.namespace;
             const statusClass = pf.status === 'Active' ? 'status-active' : (pf.status === 'Failed' ? 'status-terminating' : '');
             return `
-                <tr class="searchable-row">
+                <tr class="searchable-row" data-namespace="${ns}">
                     <td><div class="checkbox"></div></td>
                     <td style="font-weight: bold;">${pf.name}</td>
                     <td>${pf.namespace}</td>
