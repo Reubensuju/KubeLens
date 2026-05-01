@@ -114,7 +114,15 @@ export class ResourceWebview {
                     <td style="width: 40%;">${labelsHtml}</td>
                     <td style="width: 10%;">${age}</td>
                     <td style="width: 10%;" class="${statusClass}">${status}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'namespace', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'namespace', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -129,6 +137,7 @@ export class ResourceWebview {
     private static buildNodesTable(nodesList: k8s.V1Node[]): string {
         let rows = nodesList.map(n => {
             const name = n.metadata?.name || 'unknown';
+            const ns = '';
             const version = n.status?.nodeInfo?.kubeletVersion || 'Unknown';
             const age = this.calculateAge(n.metadata?.creationTimestamp);
 
@@ -180,7 +189,15 @@ export class ResourceWebview {
                     <td style="width: 10%;">${version}</td>
                     <td style="width: 10%;">${age}</td>
                     <td style="width: 10%;" class="${statusClass}">${conditionsStr}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'node', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'node', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -236,7 +253,15 @@ export class ResourceWebview {
                     <td>${qosStr}</td>
                     <td>${age}</td>
                     <td class="${statusClass}">${phase}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'pod', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'pod', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -291,7 +316,15 @@ export class ResourceWebview {
                     <td>${currentReplicas}</td>
                     <td>${age}</td>
                     <td class="${statusClass}">${status}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -340,7 +373,15 @@ export class ResourceWebview {
                     <td>${completionsStr}</td>
                     <td>${age}</td>
                     <td class="${statusClass}">${status}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'job', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'job', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -378,7 +419,15 @@ export class ResourceWebview {
                     <td>${ns}</td>
                     <td style="width: 40%;">${keysHtml}</td>
                     <td>${age}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'configmap', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'configmap', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -429,7 +478,15 @@ export class ResourceWebview {
                     <td style="width: 20%;">${keysHtml}</td>
                     <td>${type}</td>
                     <td>${age}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'secret', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'secret', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -504,7 +561,15 @@ export class ResourceWebview {
                     <td>${selectorHtml}</td>
                     <td>${age}</td>
                     <td class="${statusClass}">${status}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'service', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'service', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -556,7 +621,15 @@ export class ResourceWebview {
                     <td>${ns}</td>
                     <td style="width: 50%;">${endpointsHtml}</td>
                     <td>${age}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'endpoints', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'endpoints', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -623,7 +696,15 @@ export class ResourceWebview {
                     <td>${lbsHtml}</td>
                     <td>${rulesHtml}</td>
                     <td>${age}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'ingress', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'ingress', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');
@@ -637,6 +718,8 @@ export class ResourceWebview {
 
     private static buildPortForwardsTable(list: ActivePortForward[]): string {
         let rows = list.map(pf => {
+            const name = pf.name;
+            const ns = pf.namespace;
             const statusClass = pf.status === 'Active' ? 'status-active' : (pf.status === 'Failed' ? 'status-terminating' : '');
             return `
                 <tr class="searchable-row">
@@ -648,7 +731,15 @@ export class ResourceWebview {
                     <td>${pf.localPort}</td>
                     <td>${pf.protocol}</td>
                     <td class="${statusClass}">${pf.status}</td>
-                    <td style="width: 40px; text-align:right;"><i class="codicon codicon-kebab-vertical" style="cursor:pointer; opacity: 0.6"></i></td>
+                    <td style="width: 40px; text-align:right;"><details class="action-menu">
+                        <summary class="action-btn" title="Actions">
+                            <i class="codicon codicon-kebab-vertical"></i>
+                        </summary>
+                        <div class="action-dropdown">
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: '${pf.kind}', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: '${pf.kind}', name: '${name}', namespace: '${ns}'})">Delete</div>
+                        </div>
+                    </details></td>
                 </tr>
             `;
         }).join('');

@@ -98,6 +98,8 @@ export class ToolbarComponent {
 
     public static getScript(): string {
         return `
+            window.vscode = acquireVsCodeApi();
+            
             const searchInput = document.getElementById('searchInput');
             const rows = document.querySelectorAll('.data-table tbody tr.searchable-row');
             const countDisplay = document.getElementById('itemCountDisplay');
@@ -177,6 +179,16 @@ export class ToolbarComponent {
                     }
                 });
             }
+
+            // Close details dropdowns when clicking outside or clicking another dropdown
+            document.addEventListener('click', (event) => {
+                const targetDropdown = event.target.closest('details.action-menu');
+                document.querySelectorAll('details.action-menu[open]').forEach(details => {
+                    if (details !== targetDropdown) {
+                        details.removeAttribute('open');
+                    }
+                });
+            });
         `;
     }
 }
