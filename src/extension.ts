@@ -49,10 +49,22 @@ export function activate(context: vscode.ExtensionContext) {
                         
                         const { stdout } = await execAsync(cmd);
                         
-                        const doc = await vscode.workspace.openTextDocument({
-                            language: 'yaml',
-                            content: stdout
-                        });
+                        const kindCapitalized = message.kind.charAt(0).toUpperCase() + message.kind.slice(1);
+                        const tabTitle = `${kindCapitalized} - ${message.name}.yaml`;
+                        const uri = vscode.Uri.parse(`untitled:${tabTitle}`);
+                        
+                        const doc = await vscode.workspace.openTextDocument(uri);
+                        
+                        const edit = new vscode.WorkspaceEdit();
+                        const fullRange = new vscode.Range(
+                            doc.positionAt(0),
+                            doc.positionAt(doc.getText().length)
+                        );
+                        edit.replace(uri, fullRange, stdout);
+                        await vscode.workspace.applyEdit(edit);
+                        
+                        // Set the language explicitly just in case
+                        vscode.languages.setTextDocumentLanguage(doc, 'yaml');
                         
                         // Enforce a downward split layout (two rows)
                         await vscode.commands.executeCommand('vscode.setEditorLayout', {
