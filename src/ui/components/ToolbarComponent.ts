@@ -351,6 +351,14 @@ export class ToolbarComponent {
 
             // Close details dropdowns when clicking outside or clicking another dropdown
             document.addEventListener('click', (event) => {
+                // If we clicked on an action dropdown item, close the parent details
+                if (event.target.classList.contains('action-dropdown-item')) {
+                    const details = event.target.closest('details.action-menu');
+                    if (details) {
+                        details.removeAttribute('open');
+                    }
+                }
+
                 const targetDropdown = event.target.closest('details.action-menu, details.custom-dropdown-details');
                 document.querySelectorAll('details.action-menu[open], details.custom-dropdown-details[open]').forEach(details => {
                     if (details !== targetDropdown) {
