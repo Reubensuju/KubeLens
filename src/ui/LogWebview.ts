@@ -216,6 +216,9 @@ export class LogWebview {
                     .highlight.active {
                         background-color: var(--vscode-editor-findMatchBackground, rgba(255, 165, 0, 0.6));
                     }
+                    .toolbar-actions {
+                        letter-spacing: -0.2px;
+                    }
                 </style>
             </head>
             <body>
@@ -354,9 +357,9 @@ export class LogWebview {
                         
                         if (countDisplay && matchCount > 0) {
                             const activeNum = matchCount > 0 ? currentHighlightIndex + 1 : 0;
-                            countDisplay.innerText = \`\${activeNum} of \${matchCount}\`;
+                            countDisplay.innerText = \`\${activeNum}/\${matchCount}\`;
                         } else if (countDisplay) {
-                            countDisplay.innerText = 'No results';
+                            countDisplay.innerText = '0/0';
                         }
 
                         scrollToBottom();
