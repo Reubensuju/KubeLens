@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { BaseTreeItem } from './KubeLensTreeDataProvider';
+import { ToolbarComponent } from './components/ToolbarComponent';
 
 export class LogWebview {
     public static currentPanel: LogWebview | undefined;
@@ -161,13 +162,21 @@ export class LogWebview {
     }
 
     private getHtmlForWebview() {
+        const extraControls = `
+            <select id="pod-select" style="display: none;"></select>
+            <select id="container-select" style="display: none;"></select>
+        `;
+        const toolbarHtml = ToolbarComponent.getHtml('Search logs (Enter for next)...', -1, false, [], extraControls);
+
         return `
             <!DOCTYPE html>
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <link href="${this._panel.webview.cspSource}/codicons/codicon.css" rel="stylesheet" />
                 <style>
+                    ${ToolbarComponent.getStyle()}
                     body {
                         margin: 0;
                         padding: 0;
@@ -178,29 +187,19 @@ export class LogWebview {
                         background-color: var(--vscode-editor-background);
                         color: var(--vscode-editor-foreground);
                     }
-                    .toolbar {
-                        display: flex;
-                        padding: 8px 12px;
-                        background-color: var(--vscode-editorGroupHeader-tabsBackground);
-                        border-bottom: 1px solid var(--vscode-panel-border);
-                        gap: 12px;
-                        align-items: center;
-                        flex-shrink: 0;
-                    }
-                    select, input {
+                    select {
                         background-color: var(--vscode-input-background);
                         color: var(--vscode-input-foreground);
                         border: 1px solid var(--vscode-input-border);
                         padding: 4px 8px;
                         border-radius: 2px;
                         font-size: 13px;
+                        margin-right: 16px;
+                        height: 28px;
                     }
-                    input:focus, select:focus {
+                    select:focus {
                         outline: 1px solid var(--vscode-focusBorder);
-                    }
-                    #search-bar {
-                        flex-grow: 1;
-                        max-width: 300px;
+                        outline-offset: -1px;
                     }
                     #logs-container {
                         flex-grow: 1;
@@ -220,11 +219,7 @@ export class LogWebview {
                 </style>
             </head>
             <body>
-                <div class="toolbar">
-                    <select id="pod-select" style="display: none;"></select>
-                    <select id="container-select" style="display: none;"></select>
-                    <input type="text" id="search-bar" placeholder="Search logs (Enter for next)..." />
-                </div>
+                ${toolbarHtml}
                 <div id="logs-container"></div>
 
                 <script>
@@ -232,11 +227,31 @@ export class LogWebview {
                     const logsContainer = document.getElementById('logs-container');
                     const podSelect = document.getElementById('pod-select');
                     const containerSelect = document.getElementById('container-select');
-                    const searchBar = document.getElementById('search-bar');
+                    const searchBar = document.getElementById('searchInput');
+                    const countDisplay = document.getElementById('itemCountDisplay');
+                    const btnMatchCase = document.getElementById('btnMatchCase');
+                    const btnWholeWord = document.getElementById('btnWholeWord');
+                    const btnRegex = document.getElementById('btnRegex');
                     
                     let rawLogs = '';
                     let highlights = [];
                     let currentHighlightIndex = -1;
+                    
+                    let matchCase = false;
+                    let wholeWord = false;
+                    let useRegex = false;
+
+                    function toggleBtn(btn, stateVar) {
+                        if (!btn) return stateVar;
+                        const newState = !stateVar;
+                        if (newState) btn.classList.add('active');
+                        else btn.classList.remove('active');
+                        return newState;
+                    }
+
+                    if (btnMatchCase) btnMatchCase.onclick = () => { matchCase = toggleBtn(btnMatchCase, matchCase); renderLogs(); scrollToActiveHighlight(); };
+                    if (btnWholeWord) btnWholeWord.onclick = () => { wholeWord = toggleBtn(btnWholeWord, wholeWord); renderLogs(); scrollToActiveHighlight(); };
+                    if (btnRegex) btnRegex.onclick = () => { useRegex = toggleBtn(btnRegex, useRegex); renderLogs(); scrollToActiveHighlight(); };
 
                     window.addEventListener('message', event => {
                         const message = event.data;
@@ -255,6 +270,7 @@ export class LogWebview {
                                 rawLogs = '';
                                 highlights = [];
                                 currentHighlightIndex = -1;
+                                if (countDisplay) countDisplay.innerText = '';
                                 break;
                         }
                     });
@@ -279,7 +295,6 @@ export class LogWebview {
                     }
 
                     podSelect.addEventListener('change', () => {
-                        // Ideally we should refetch containers for the new pod, but for now just send the update
                         vscode.postMessage({ command: 'updateFilter', pod: podSelect.value, container: '' });
                     });
                     
@@ -299,34 +314,63 @@ export class LogWebview {
                         renderLogs();
                     }
 
+                    function escapeStr(s) {
+                        return s.split('').map(c => '.*+?^$(){}[]|\\\\\\\\'.includes(c) ? '\\\\\\\\' + c : c).join('');
+                    }
+
                     function renderLogs() {
-                        const searchTerm = searchBar.value.toLowerCase();
-                        if (!searchTerm) {
+                        const rawQuery = searchBar.value;
+                        if (!rawQuery) {
                             logsContainer.innerHTML = rawLogs;
                             scrollToBottom();
+                            if (countDisplay) countDisplay.innerText = '';
                             return;
                         }
 
-                        // Super basic highlight implementation
-                        const regex = new RegExp(searchTerm.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&'), 'gi');
                         let matchCount = 0;
-                        const highlightedHtml = rawLogs.replace(regex, (match) => {
-                            const isActive = matchCount === currentHighlightIndex;
-                            const cls = isActive ? 'highlight active' : 'highlight';
-                            matchCount++;
-                            return \`<span class="\${cls}">\${match}</span>\`;
-                        });
+                        try {
+                            const flags = matchCase ? 'g' : 'gi';
+                            let regexStr = rawQuery;
+                            if (!useRegex) {
+                                regexStr = escapeStr(regexStr);
+                            }
+                            if (wholeWord) {
+                                regexStr = '\\\\b' + regexStr + '\\\\b';
+                            }
+                            const regex = new RegExp(regexStr, flags);
+                            
+                            const highlightedHtml = rawLogs.replace(regex, (match) => {
+                                const isActive = matchCount === currentHighlightIndex;
+                                const cls = isActive ? 'highlight active' : 'highlight';
+                                matchCount++;
+                                return \`<span class="\${cls}">\${match}</span>\`;
+                            });
 
-                        logsContainer.innerHTML = highlightedHtml;
+                            logsContainer.innerHTML = highlightedHtml;
+                        } catch (e) {
+                            // Invalid regex, just show raw logs
+                            logsContainer.innerHTML = rawLogs;
+                        }
+                        
+                        if (countDisplay && matchCount > 0) {
+                            const activeNum = matchCount > 0 ? currentHighlightIndex + 1 : 0;
+                            countDisplay.innerText = \`\${activeNum} of \${matchCount}\`;
+                        } else if (countDisplay) {
+                            countDisplay.innerText = 'No results';
+                        }
+
                         scrollToBottom();
                     }
 
                     function scrollToBottom() {
-                        logsContainer.scrollTop = logsContainer.scrollHeight;
+                        // Only auto-scroll if we aren't focused on a specific highlight
+                        if (currentHighlightIndex === -1) {
+                            logsContainer.scrollTop = logsContainer.scrollHeight;
+                        }
                     }
 
                     searchBar.addEventListener('input', () => {
-                        currentHighlightIndex = 0;
+                        currentHighlightIndex = searchBar.value ? 0 : -1;
                         renderLogs();
                         scrollToActiveHighlight();
                     });
