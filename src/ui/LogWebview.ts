@@ -194,10 +194,10 @@ export class LogWebview {
                     }
                     #logs-container {
                         flex-grow: 1;
-                        overflow-y: auto;
+                        overflow: auto;
                         padding: 12px;
-                        white-space: pre-wrap;
-                        word-break: break-all;
+                        white-space: pre;
+                        word-break: normal;
                         font-size: 12px;
                         line-height: 1.4;
                         content-visibility: auto;
