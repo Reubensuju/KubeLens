@@ -138,7 +138,7 @@ export class ToolbarComponent {
         `;
     }
 
-    public static getHtml(placeholderText: string, itemCount: number, showNamespaceFilter: boolean = false, allNamespaces: string[] = []): string {
+    public static getHtml(placeholderText: string, itemCount: number, showNamespaceFilter: boolean = false, allNamespaces: string[] = [], extraControlsHtml: string = ''): string {
         let nsFilterHtml = '';
         if (showNamespaceFilter) {
             const optionsHtml = allNamespaces.map(ns => `<div class="namespace-option" data-value="${ns}">${ns}</div>`).join('');
@@ -156,9 +156,14 @@ export class ToolbarComponent {
             `;
         }
 
+        const countHtml = itemCount >= 0 
+            ? `<span id="itemCountDisplay">${itemCount === 1 ? '1 item' : itemCount + ' items'}</span>`
+            : `<span id="itemCountDisplay"></span>`;
+
         return `
             <div class="toolbar">
                 ${nsFilterHtml}
+                ${extraControlsHtml}
                 <div class="search-container">
                     <input type="text" id="searchInput" placeholder="${placeholderText}" />
                     <div class="search-controls">
@@ -168,7 +173,7 @@ export class ToolbarComponent {
                     </div>
                 </div>
                 <div class="toolbar-actions">
-                    <span id="itemCountDisplay">${itemCount === 1 ? '1 item' : itemCount + ' items'}</span>
+                    ${countHtml}
                 </div>
             </div>
             <div class="divider"></div>
