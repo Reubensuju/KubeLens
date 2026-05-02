@@ -174,7 +174,7 @@ export class LogWebview {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <link href="${this._panel.webview.cspSource}/codicons/codicon.css" rel="stylesheet" />
+                <link href="https://unpkg.com/@vscode/codicons/dist/codicon.css" rel="stylesheet" />
                 <style>
                     ${ToolbarComponent.getStyle()}
                     body {
