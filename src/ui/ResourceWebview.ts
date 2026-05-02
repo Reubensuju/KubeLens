@@ -86,6 +86,10 @@ export class ResourceWebview {
                         margin: 0;
                         color: var(--vscode-editor-foreground);
                         background-color: var(--vscode-editor-background);
+                        display: flex;
+                        flex-direction: column;
+                        height: 100vh;
+                        overflow: hidden;
                     }
                     ${ToolbarComponent.getStyle()}
                     ${TableComponent.getStyle()}

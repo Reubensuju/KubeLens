@@ -6,12 +6,8 @@ export class ToolbarComponent {
                 align-items: center;
                 padding: 8px 16px;
                 background-color: var(--vscode-editor-background);
-                position: sticky;
-                top: 0;
-                left: 0;
+                flex-shrink: 0;
                 z-index: 1000;
-                width: 100%;
-                box-sizing: border-box;
                 border-bottom: 1px solid var(--vscode-widget-border);
             }
             .search-container {

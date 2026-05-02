@@ -3,6 +3,8 @@ export class TableComponent {
         return `
             .table-container {
                 width: 100%;
+                flex-grow: 1;
+                overflow: auto;
             }
             .data-table {
                 width: 100%;
