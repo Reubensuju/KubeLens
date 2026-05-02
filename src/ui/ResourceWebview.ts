@@ -86,6 +86,10 @@ export class ResourceWebview {
                         margin: 0;
                         color: var(--vscode-editor-foreground);
                         background-color: var(--vscode-editor-background);
+                        display: flex;
+                        flex-direction: column;
+                        height: 100vh;
+                        overflow: hidden;
                     }
                     ${ToolbarComponent.getStyle()}
                     ${TableComponent.getStyle()}
@@ -240,7 +244,10 @@ export class ResourceWebview {
             let ownerStr = '';
             if (p.metadata?.ownerReferences && p.metadata.ownerReferences.length > 0) {
                 const o = p.metadata.ownerReferences[0];
-                ownerStr = `<span style="opacity: 0.8;">${o.kind} / ${o.name}</span>`;
+                ownerStr = `<div class="label-badge controlled-by-pill">
+                                <span class="kind-label">${o.kind}</span>
+                                <span class="name-label">/ ${o.name}</span>
+                            </div>`;
             }
 
             const nodeName = p.spec?.nodeName || '<span style="opacity:0.5;">&lt;none&gt;</span>';
