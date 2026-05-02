@@ -30,6 +30,7 @@ typings/
 out/
 dist/
 build/
+builds/
 *.vsix
 
 # Logs & temp files

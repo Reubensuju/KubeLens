@@ -272,6 +272,7 @@ export class ResourceWebview {
                         </summary>
                         <div class="action-dropdown">
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'pod', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'logs', kind: 'pod', name: '${name}', namespace: '${ns}'})">Logs</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'pod', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
@@ -335,6 +336,7 @@ export class ResourceWebview {
                         </summary>
                         <div class="action-dropdown">
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'logs', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Logs</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'deployment', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
@@ -392,6 +394,7 @@ export class ResourceWebview {
                         </summary>
                         <div class="action-dropdown">
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'job', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'logs', kind: 'job', name: '${name}', namespace: '${ns}'})">Logs</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'job', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>

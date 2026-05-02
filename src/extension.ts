@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { KubeLensTreeDataProvider, BaseTreeItem } from './ui/KubeLensTreeDataProvider';
 import { ResourceWebview } from './ui/ResourceWebview';
 
+import { LogWebview } from './ui/LogWebview';
+
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
 
@@ -24,8 +26,9 @@ export function activate(context: vscode.ExtensionContext) {
     const kubeProvider = new KubeLensTreeDataProvider();
     vscode.window.registerTreeDataProvider('kubelens.clustersView', kubeProvider);
     
-    // Register custom URI scheme for read-only YAML specs
+    // Register custom URI schemes
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('kubelens', kubelensProvider));
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('kubelens-logs', kubelensProvider));
 
     let refreshCommand = vscode.commands.registerCommand('kubelens.refreshContainers', () => {
         kubeProvider.refresh();
@@ -54,31 +57,26 @@ export function activate(context: vscode.ExtensionContext) {
             clusterPanels.set(node.contextName, panel);
 
             panel.webview.onDidReceiveMessage(async (message) => {
-                if (message.command === 'edit') {
+                const { command, kind, name, namespace } = message;
+                const nsArg = (namespace && namespace !== 'undefined' && namespace !== 'null') ? `-n ${namespace}` : '';
+
+                if (command === 'edit') {
                     try {
                         const { exec } = require('child_process');
                         const util = require('util');
                         const execAsync = util.promisify(exec);
                         
-                        const nsArg = (message.namespace && message.namespace !== 'undefined' && message.namespace !== 'null') ? `-n ${message.namespace}` : '';
-                        const cmd = `kubectl get ${message.kind} ${message.name} ${nsArg} -o yaml --context ${node.contextName}`;
-                        
+                        const cmd = `kubectl get ${kind} ${name} ${nsArg} -o yaml --context ${node.contextName}`;
                         const { stdout } = await execAsync(cmd);
                         
-                        const kindCapitalized = message.kind.charAt(0).toUpperCase() + message.kind.slice(1);
-                        const tabTitle = `${kindCapitalized} - ${message.name}.yaml`;
+                        const kindCapitalized = kind.charAt(0).toUpperCase() + kind.slice(1);
+                        const tabTitle = `${kindCapitalized} - ${name}.yaml`;
                         const uri = vscode.Uri.parse(`kubelens:${tabTitle}`);
                         
-                        // Set the content in our custom provider
                         kubelensProvider.setContent(uri, stdout);
-                        
-                        // Open the read-only virtual document
                         const doc = await vscode.workspace.openTextDocument(uri);
-                        
-                        // Set the language explicitly just in case
                         vscode.languages.setTextDocumentLanguage(doc, 'yaml');
                         
-                        // Enforce a downward split layout (two rows)
                         await vscode.commands.executeCommand('vscode.setEditorLayout', {
                             orientation: 1,
                             groups: [{ size: 0.5 }, { size: 0.5 }]
@@ -91,6 +89,8 @@ export function activate(context: vscode.ExtensionContext) {
                     } catch (e: any) {
                         vscode.window.showErrorMessage(`Failed to fetch resource spec: ${e.message}`);
                     }
+                } else if (command === 'logs') {
+                    await LogWebview.createOrShow(node, { kind, name, namespace });
                 }
             });
         }
