@@ -207,7 +207,7 @@ export class LogWebview {
                         padding: 12px;
                         white-space: pre-wrap;
                         word-break: break-all;
-                        font-size: 13px;
+                        font-size: 12px;
                         line-height: 1.4;
                     }
                     .highlight {
