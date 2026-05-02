@@ -107,6 +107,9 @@ export function activate(context: vscode.ExtensionContext) {
                         onDidWrite: writeEmitter.event,
                         onDidClose: closeEmitter.event,
                         open: () => {
+                            // Hide the terminal cursor to make it look like a read-only output view
+                            writeEmitter.fire('\x1b[?25l');
+
                             const { spawn } = require('child_process');
                             const args = ['logs', '-f', `${kind}/${name}`, '--context', node.contextName!];
                             if (nsArg) {
