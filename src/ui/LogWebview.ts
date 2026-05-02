@@ -166,7 +166,7 @@ export class LogWebview {
             <select id="pod-select" style="display: none;"></select>
             <select id="container-select" style="display: none;"></select>
         `;
-        const toolbarHtml = ToolbarComponent.getHtml('Search logs (Enter for next)...', -1, false, [], extraControls);
+        const toolbarHtml = ToolbarComponent.getHtml('Search Logs', -1, false, [], extraControls);
 
         return `
             <!DOCTYPE html>
