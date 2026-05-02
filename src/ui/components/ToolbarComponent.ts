@@ -60,14 +60,14 @@ export class ToolbarComponent {
             }
             
             /* Custom Dropdown Styles */
-            .namespace-dropdown-details {
+            .custom-dropdown-details {
                 position: relative;
                 font-family: var(--vscode-font-family);
                 font-size: 13px;
                 margin-right: 16px;
                 flex-shrink: 0;
             }
-            .namespace-dropdown-summary {
+            .custom-dropdown-summary {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -83,14 +83,14 @@ export class ToolbarComponent {
                 list-style: none; /* remove default triangle */
                 user-select: none;
             }
-            .namespace-dropdown-summary::-webkit-details-marker {
+            .custom-dropdown-summary::-webkit-details-marker {
                 display: none;
             }
-            .namespace-dropdown-summary:focus {
+            .custom-dropdown-summary:focus {
                 outline: 1px solid var(--vscode-focusBorder);
                 outline-offset: -1px;
             }
-            .namespace-dropdown-menu {
+            .custom-dropdown-menu {
                 position: absolute;
                 top: calc(100% + 2px); /* Dropdown appears below */
                 left: 0;
@@ -103,15 +103,15 @@ export class ToolbarComponent {
                 max-height: 300px;
                 overflow-y: auto;
             }
-            .namespace-option {
+            .dropdown-option {
                 padding: 6px 8px;
                 cursor: pointer;
                 color: var(--vscode-dropdown-foreground);
             }
-            .namespace-option:hover {
+            .dropdown-option:hover {
                 background-color: var(--vscode-list-hoverBackground);
             }
-            .namespace-option.active {
+            .dropdown-option.active {
                 background-color: var(--vscode-list-activeSelectionBackground);
                 color: var(--vscode-list-activeSelectionForeground);
             }
@@ -123,6 +123,7 @@ export class ToolbarComponent {
                 color: var(--vscode-foreground);
                 opacity: 0.8;
                 font-size: 12px;
+                letter-spacing: -0.2px;
             }
             .toolbar-actions .codicon {
                 cursor: pointer;
@@ -138,22 +139,29 @@ export class ToolbarComponent {
         `;
     }
 
+    public static getCustomDropdownHtml(id: string, defaultText: string, options: { value: string, label: string }[], width: string = '250px'): string {
+        const optionsHtml = options.map(opt => `<div class="dropdown-option" data-value="${opt.value}">${opt.label}</div>`).join('');
+        return `
+            <details class="custom-dropdown-details" id="${id}Details">
+                <summary class="custom-dropdown-summary" id="${id}Summary" data-value="${options.length > 0 ? options[0].value : ''}" style="width: ${width};">
+                    <span id="${id}SelectedText" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: calc(${width} - 30px);">${defaultText}</span>
+                    <i class="codicon codicon-chevron-down"></i>
+                </summary>
+                <div class="custom-dropdown-menu">
+                    ${optionsHtml}
+                </div>
+            </details>
+        `;
+    }
+
     public static getHtml(placeholderText: string, itemCount: number, showNamespaceFilter: boolean = false, allNamespaces: string[] = [], extraControlsHtml: string = ''): string {
         let nsFilterHtml = '';
         if (showNamespaceFilter) {
-            const optionsHtml = allNamespaces.map(ns => `<div class="namespace-option" data-value="${ns}">${ns}</div>`).join('');
-            nsFilterHtml = `
-                <details class="namespace-dropdown-details" id="namespaceDropdownDetails">
-                    <summary class="namespace-dropdown-summary" id="namespaceDropdownSummary" data-value="all">
-                        <span id="selectedNamespaceText" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;">All Namespaces</span>
-                        <i class="codicon codicon-chevron-down"></i>
-                    </summary>
-                    <div class="namespace-dropdown-menu">
-                        <div class="namespace-option active" data-value="all">All Namespaces</div>
-                        ${optionsHtml}
-                    </div>
-                </details>
-            `;
+            const options = [
+                { value: 'all', label: 'All Namespaces' },
+                ...allNamespaces.map(ns => ({ value: ns, label: ns }))
+            ];
+            nsFilterHtml = this.getCustomDropdownHtml('namespaceDropdown', 'All Namespaces', options);
         }
 
         const countHtml = itemCount >= 0 
@@ -186,9 +194,9 @@ export class ToolbarComponent {
             
             const searchInput = document.getElementById('searchInput');
             const namespaceDropdownSummary = document.getElementById('namespaceDropdownSummary');
-            const selectedNamespaceText = document.getElementById('selectedNamespaceText');
+            const selectedNamespaceText = document.getElementById('namespaceDropdownSelectedText');
             const namespaceDropdownDetails = document.getElementById('namespaceDropdownDetails');
-            const namespaceOptions = document.querySelectorAll('.namespace-option');
+            const dropdownOptions = document.querySelectorAll('.dropdown-option');
             
             // Restore state
             const previousState = window.vscode.getState() || {};
@@ -198,7 +206,7 @@ export class ToolbarComponent {
                 // (or if it's 'all')
                 let exists = val === 'all';
                 if (!exists) {
-                    namespaceOptions.forEach(opt => {
+                    dropdownOptions.forEach(opt => {
                         if (opt.getAttribute('data-value') === val) exists = true;
                     });
                 }
@@ -206,7 +214,7 @@ export class ToolbarComponent {
                 if (exists) {
                     namespaceDropdownSummary.setAttribute('data-value', val);
                     selectedNamespaceText.innerText = text;
-                    namespaceOptions.forEach(opt => {
+                    dropdownOptions.forEach(opt => {
                         if (opt.getAttribute('data-value') === val) {
                             opt.classList.add('active');
                         } else {
@@ -257,7 +265,7 @@ export class ToolbarComponent {
                     let isMatch = true;
                     let matchesNs = true;
                     
-                    if (nsFilterVal !== 'all') {
+                    if (nsFilterVal && nsFilterVal !== 'all') {
                         const rowNs = row.getAttribute('data-namespace');
                         matchesNs = (rowNs === nsFilterVal);
                     }
@@ -305,32 +313,38 @@ export class ToolbarComponent {
             }
 
             // Handle custom dropdown options click
-            namespaceOptions.forEach(option => {
+            dropdownOptions.forEach(option => {
                 option.addEventListener('click', (e) => {
                     e.stopPropagation();
                     
-                    // Remove active from all
-                    namespaceOptions.forEach(opt => opt.classList.remove('active'));
+                    const details = option.closest('details');
+                    const summary = details.querySelector('summary');
+                    const selectedText = summary.querySelector('span');
+                    const options = details.querySelectorAll('.dropdown-option');
+                    
+                    // Remove active from sibling options
+                    options.forEach(opt => opt.classList.remove('active'));
                     // Add active to clicked
                     option.classList.add('active');
                     
                     // Update summary
                     const val = option.getAttribute('data-value');
                     const text = option.innerText;
-                    namespaceDropdownSummary.setAttribute('data-value', val);
-                    selectedNamespaceText.innerText = text;
+                    summary.setAttribute('data-value', val);
+                    selectedText.innerText = text;
                     
-                    // Save state
-                    window.vscode.setState({ 
-                        ...(window.vscode.getState() || {}),
-                        selectedNamespace: { val, text } 
-                    });
+                    // Save state (if it's the namespace dropdown)
+                    if (summary.id === 'namespaceDropdownSummary') {
+                        window.vscode.setState({ 
+                            ...(window.vscode.getState() || {}),
+                            selectedNamespace: { val, text } 
+                        });
+                        // Trigger filter
+                        applyFilters();
+                    }
                     
                     // Close details
-                    namespaceDropdownDetails.removeAttribute('open');
-                    
-                    // Trigger filter
-                    applyFilters();
+                    details.removeAttribute('open');
                 });
             });
             
@@ -339,8 +353,8 @@ export class ToolbarComponent {
 
             // Close details dropdowns when clicking outside or clicking another dropdown
             document.addEventListener('click', (event) => {
-                const targetDropdown = event.target.closest('details.action-menu, details.namespace-dropdown-details');
-                document.querySelectorAll('details.action-menu[open], details.namespace-dropdown-details[open]').forEach(details => {
+                const targetDropdown = event.target.closest('details.action-menu, details.custom-dropdown-details');
+                document.querySelectorAll('details.action-menu[open], details.custom-dropdown-details[open]').forEach(details => {
                     if (details !== targetDropdown) {
                         details.removeAttribute('open');
                     }

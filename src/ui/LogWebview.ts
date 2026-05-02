@@ -163,8 +163,12 @@ export class LogWebview {
 
     private getHtmlForWebview() {
         const extraControls = `
-            <select id="pod-select" style="display: none;"></select>
-            <select id="container-select" style="display: none;"></select>
+            <div id="pod-select-container" style="display: none;">
+                ${ToolbarComponent.getCustomDropdownHtml('podSelect', 'Select Pod...', [], '250px')}
+            </div>
+            <div id="container-select-container" style="display: none;">
+                ${ToolbarComponent.getCustomDropdownHtml('containerSelect', 'Select Container...', [], '200px')}
+            </div>
         `;
         const toolbarHtml = ToolbarComponent.getHtml('Search Logs', -1, false, [], extraControls);
 
@@ -186,20 +190,6 @@ export class LogWebview {
                         font-family: var(--vscode-editor-font-family, monospace);
                         background-color: var(--vscode-editor-background);
                         color: var(--vscode-editor-foreground);
-                    }
-                    select {
-                        background-color: var(--vscode-input-background);
-                        color: var(--vscode-input-foreground);
-                        border: 1px solid var(--vscode-input-border);
-                        padding: 4px 8px;
-                        border-radius: 2px;
-                        font-size: 13px;
-                        margin-right: 16px;
-                        height: 28px;
-                    }
-                    select:focus {
-                        outline: 1px solid var(--vscode-focusBorder);
-                        outline-offset: -1px;
                     }
                     #logs-container {
                         flex-grow: 1;
@@ -228,8 +218,19 @@ export class LogWebview {
                 <script>
                     const vscode = acquireVsCodeApi();
                     const logsContainer = document.getElementById('logs-container');
-                    const podSelect = document.getElementById('pod-select');
-                    const containerSelect = document.getElementById('container-select');
+                    
+                    const podSelectDetails = document.getElementById('podSelectDetails');
+                    const podSelectSummary = document.getElementById('podSelectSummary');
+                    const podSelectText = document.getElementById('podSelectSelectedText');
+                    const podSelectMenu = podSelectDetails.querySelector('.custom-dropdown-menu');
+                    const podSelectContainer = document.getElementById('pod-select-container');
+
+                    const containerSelectDetails = document.getElementById('containerSelectDetails');
+                    const containerSelectSummary = document.getElementById('containerSelectSummary');
+                    const containerSelectText = document.getElementById('containerSelectSelectedText');
+                    const containerSelectMenu = containerSelectDetails.querySelector('.custom-dropdown-menu');
+                    const containerSelectContainer = document.getElementById('container-select-container');
+
                     const searchBar = document.getElementById('searchInput');
                     const countDisplay = document.getElementById('itemCountDisplay');
                     const btnMatchCase = document.getElementById('btnMatchCase');
@@ -260,10 +261,10 @@ export class LogWebview {
                         const message = event.data;
                         switch (message.command) {
                             case 'initFilters':
-                                populateSelect(podSelect, message.pods, message.selectedPod);
-                                populateSelect(containerSelect, message.containers, message.selectedContainer);
-                                podSelect.style.display = message.pods.length > 1 ? 'block' : 'none';
-                                containerSelect.style.display = message.containers.length > 1 ? 'block' : 'none';
+                                populateCustomDropdown(podSelectDetails, message.pods, message.selectedPod);
+                                populateCustomDropdown(containerSelectDetails, message.containers, message.selectedContainer);
+                                podSelectContainer.style.display = message.pods.length > 1 ? 'block' : 'none';
+                                containerSelectContainer.style.display = message.containers.length > 1 ? 'block' : 'none';
                                 break;
                             case 'log':
                                 appendLog(message.data);
@@ -278,30 +279,55 @@ export class LogWebview {
                         }
                     });
 
-                    function populateSelect(selectEl, items, selected) {
-                        selectEl.innerHTML = '';
+                    function populateCustomDropdown(detailsEl, items, selected) {
+                        const summary = detailsEl.querySelector('summary');
+                        const textSpan = summary.querySelector('span');
+                        const menu = detailsEl.querySelector('.custom-dropdown-menu');
+                        
+                        menu.innerHTML = '';
                         items.forEach(item => {
-                            const option = document.createElement('option');
-                            option.value = item;
+                            const option = document.createElement('div');
+                            option.className = 'dropdown-option' + (item === selected ? ' active' : '');
+                            option.setAttribute('data-value', item);
                             option.textContent = item;
-                            if (item === selected) option.selected = true;
-                            selectEl.appendChild(option);
+                            
+                            option.onclick = (e) => {
+                                e.stopPropagation();
+                                summary.setAttribute('data-value', item);
+                                textSpan.textContent = item;
+                                detailsEl.removeAttribute('open');
+                                
+                                // Update active class
+                                detailsEl.querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('active'));
+                                option.classList.add('active');
+                                
+                                onFilterChange();
+                            };
+                            
+                            menu.appendChild(option);
                         });
+                        
+                        summary.setAttribute('data-value', selected || '');
+                        textSpan.textContent = selected || 'Select...';
                     }
 
                     function onFilterChange() {
-                        const pod = podSelect.value;
-                        const container = containerSelect.value;
+                        const pod = podSelectSummary.getAttribute('data-value');
+                        const container = containerSelectSummary.getAttribute('data-value');
                         if (pod) {
                             vscode.postMessage({ command: 'updateFilter', pod, container });
                         }
                     }
 
-                    podSelect.addEventListener('change', () => {
-                        vscode.postMessage({ command: 'updateFilter', pod: podSelect.value, container: '' });
+                    // Global click to close dropdowns
+                    document.addEventListener('click', (event) => {
+                        const targetDropdown = event.target.closest('details.custom-dropdown-details');
+                        document.querySelectorAll('details.custom-dropdown-details[open]').forEach(details => {
+                            if (details !== targetDropdown) {
+                                details.removeAttribute('open');
+                            }
+                        });
                     });
-                    
-                    containerSelect.addEventListener('change', onFilterChange);
 
                     function escapeHtml(unsafe) {
                         return unsafe
