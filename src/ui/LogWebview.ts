@@ -117,6 +117,7 @@ export class LogWebview {
 
     private async startLogStream(podName: string, containerName: string) {
         if (this._logProcess) {
+            this._logProcess.removeAllListeners();
             this._logProcess.kill();
             this._logProcess = null;
         }
