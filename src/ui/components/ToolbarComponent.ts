@@ -13,16 +13,15 @@ export class ToolbarComponent {
                 background-color: var(--vscode-input-background);
                 border: 1px solid var(--vscode-input-border);
                 border-radius: 2px;
-                padding: 0 4px;
+                padding: 0 4px 0 0;
                 width: 300px;
-                height: 28px;
                 margin-right: 16px;
-                transition: border-color 0.2s;
                 box-sizing: border-box;
                 flex-shrink: 0;
             }
             .search-container:focus-within {
-                border-color: var(--vscode-focusBorder);
+                outline: 1px solid var(--vscode-focusBorder);
+                outline-offset: -1px;
             }
             .search-container input {
                 background: none;
@@ -30,9 +29,9 @@ export class ToolbarComponent {
                 color: var(--vscode-input-foreground);
                 outline: none;
                 flex-grow: 1;
-                padding: 0;
-                height: 100%;
+                padding: 4px 8px;
                 font-family: var(--vscode-font-family);
+                font-size: 13px;
             }
             .search-container input::placeholder {
                 color: var(--vscode-input-placeholderForeground);
@@ -72,13 +71,13 @@ export class ToolbarComponent {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                background-color: var(--vscode-dropdown-background);
-                color: var(--vscode-dropdown-foreground);
-                border: 1px solid var(--vscode-dropdown-border);
+                background-color: var(--vscode-input-background);
+                color: var(--vscode-input-foreground);
+                border: 1px solid var(--vscode-input-border);
                 border-radius: 2px;
-                padding: 0 8px;
+                padding: 4px 8px;
+                font-size: 13px;
                 width: 250px;
-                height: 28px;
                 cursor: pointer;
                 box-sizing: border-box;
                 list-style: none; /* remove default triangle */
@@ -88,8 +87,8 @@ export class ToolbarComponent {
                 display: none;
             }
             .namespace-dropdown-summary:focus {
-                border-color: var(--vscode-focusBorder);
-                outline: none;
+                outline: 1px solid var(--vscode-focusBorder);
+                outline-offset: -1px;
             }
             .namespace-dropdown-menu {
                 position: absolute;
