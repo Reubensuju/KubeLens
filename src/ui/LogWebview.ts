@@ -200,6 +200,7 @@ export class LogWebview {
                         word-break: break-all;
                         font-size: 12px;
                         line-height: 1.4;
+                        content-visibility: auto;
                     }
                     .highlight {
                         background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(255, 255, 0, 0.3));
@@ -239,8 +240,10 @@ export class LogWebview {
                     const btnRegex = document.getElementById('btnRegex');
                     
                     let rawLogs = '';
-                    let highlights = [];
+                    let logBuffer = '';
                     let currentHighlightIndex = -1;
+                    let renderPending = false;
+                    let appendPending = false;
                     
                     let matchCase = false;
                     let wholeWord = false;
@@ -273,7 +276,6 @@ export class LogWebview {
                             case 'clearLogs':
                                 logsContainer.innerHTML = '';
                                 rawLogs = '';
-                                highlights = [];
                                 currentHighlightIndex = -1;
                                 if (countDisplay) countDisplay.innerText = '';
                                 break;
@@ -340,8 +342,34 @@ export class LogWebview {
                     }
 
                     function appendLog(data) {
-                        rawLogs += escapeHtml(data);
-                        renderLogs();
+                        const escapedData = escapeHtml(data);
+                        rawLogs += escapedData;
+                        
+                        const rawQuery = searchBar.value;
+                        if (!rawQuery) {
+                            // Performance: Batch appends and use requestAnimationFrame
+                            logBuffer += escapedData;
+                            if (!appendPending) {
+                                appendPending = true;
+                                requestAnimationFrame(() => {
+                                    const chunk = document.createElement('span');
+                                    chunk.innerHTML = logBuffer;
+                                    logsContainer.appendChild(chunk);
+                                    logBuffer = '';
+                                    appendPending = false;
+                                    scrollToBottom();
+                                });
+                            }
+                        } else {
+                            // Throttled re-render for search highlights
+                            if (!renderPending) {
+                                renderPending = true;
+                                setTimeout(() => {
+                                    renderLogs();
+                                    renderPending = false;
+                                }, 200);
+                            }
+                        }
                     }
 
                     function escapeStr(s) {
@@ -378,7 +406,6 @@ export class LogWebview {
 
                             logsContainer.innerHTML = highlightedHtml;
                         } catch (e) {
-                            // Invalid regex, just show raw logs
                             logsContainer.innerHTML = rawLogs;
                         }
                         
@@ -393,7 +420,6 @@ export class LogWebview {
                     }
 
                     function scrollToBottom() {
-                        // Only auto-scroll if we aren't focused on a specific highlight
                         if (currentHighlightIndex === -1) {
                             logsContainer.scrollTop = logsContainer.scrollHeight;
                         }
