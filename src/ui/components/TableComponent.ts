@@ -128,6 +128,34 @@ export class TableComponent {
                 background-color: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
                 opacity: 1;
             }
+            
+            .controlled-by-pill {
+                display: inline-flex;
+                align-items: center;
+                cursor: help;
+                max-width: fit-content;
+                transition: all 0.2s ease;
+                user-select: none;
+                vertical-align: middle;
+                margin-bottom: 0; /* Reset for table row alignment */
+            }
+            .kind-label {
+                font-weight: 600;
+            }
+            .name-label {
+                max-width: 0;
+                opacity: 0;
+                overflow: hidden;
+                white-space: nowrap;
+                transition: all 0.3s ease;
+                display: inline-block;
+                vertical-align: bottom;
+            }
+            .controlled-by-pill:hover .name-label {
+                max-width: 300px;
+                opacity: 0.8;
+                margin-left: 4px;
+            }
         `;
     }
 
