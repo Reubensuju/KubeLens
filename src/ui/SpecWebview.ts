@@ -63,24 +63,6 @@ export class SpecWebview {
                         color: var(--vscode-editor-foreground);
                         font-family: var(--vscode-font-family);
                     }
-                    /* Simulated Tab Bar */
-                    .tab-bar {
-                        display: flex;
-                        background-color: var(--vscode-editorGroupHeader-tabsBackground);
-                        height: 35px;
-                        border-bottom: 1px solid var(--vscode-widget-border);
-                    }
-                    .tab {
-                        display: flex;
-                        align-items: center;
-                        padding: 0 16px;
-                        background-color: var(--vscode-tab-activeBackground);
-                        color: var(--vscode-tab-activeForeground);
-                        border-right: 1px solid var(--vscode-tab-border);
-                        font-size: 13px;
-                        height: 100%;
-                    }
-                    /* The requested Bar */
                     .toolbar {
                         height: 36px;
                         display: flex;
@@ -100,14 +82,11 @@ export class SpecWebview {
                     }
                     #editor-container {
                         width: 100%;
-                        height: calc(100vh - 72px); /* Subtract tab bar and toolbar */
+                        height: calc(100vh - 36px); /* Subtract toolbar only */
                     }
                 </style>
             </head>
             <body>
-                <div class="tab-bar">
-                    <div class="tab">${title}</div>
-                </div>
                 <div class="toolbar">
                     <div class="empty-btn"></div>
                     <div class="empty-btn"></div>
