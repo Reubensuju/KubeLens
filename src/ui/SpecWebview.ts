@@ -64,25 +64,25 @@ export class SpecWebview {
                         font-family: var(--vscode-font-family);
                     }
                     .toolbar {
-                        height: 36px;
                         display: flex;
                         align-items: center;
-                        padding: 0 16px;
+                        padding: 8px 16px;
                         background-color: var(--vscode-editor-background);
                         border-bottom: 1px solid var(--vscode-widget-border);
-                        justify-content: flex-end;
+                        justify-content: flex-start;
                         gap: 8px;
+                        min-height: 26px; /* Matches logs bar with padding */
                     }
                     .empty-btn {
-                        width: 22px;
-                        height: 22px;
-                        border-radius: 3px;
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 4px;
                         background-color: var(--vscode-toolbar-hoverBackground);
                         opacity: 0.2;
                     }
                     #editor-container {
                         width: 100%;
-                        height: calc(100vh - 36px); /* Subtract toolbar only */
+                        height: calc(100vh - 42px); /* Approximate logs bar height with 8px padding */
                     }
                 </style>
             </head>
