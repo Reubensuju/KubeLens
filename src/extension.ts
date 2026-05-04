@@ -78,12 +78,8 @@ export function activate(context: vscode.ExtensionContext) {
                         const doc = await vscode.workspace.openTextDocument(uri);
                         vscode.languages.setTextDocumentLanguage(doc, 'yaml');
 
-                        await vscode.commands.executeCommand('vscode.setEditorLayout', {
-                            orientation: 0,
-                            groups: [{ size: 0.5 }, { size: 0.5 }]
-                        });
-
                         await SpecWebview.createOrShow(kind.charAt(0).toUpperCase() + kind.slice(1), name, stdout);
+                        await vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
                     } catch (e: any) {
                         vscode.window.showErrorMessage(`Failed to fetch resource spec: ${e.message}`);
                     }
