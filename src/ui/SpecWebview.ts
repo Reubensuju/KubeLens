@@ -163,6 +163,7 @@ export class SpecWebview {
 
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
                 <script>
+                    const vscode = acquireVsCodeApi();
                     require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
                     require(['vs/editor/editor.main'], function() {
                         const editor = monaco.editor.create(document.getElementById('editor-container'), {
