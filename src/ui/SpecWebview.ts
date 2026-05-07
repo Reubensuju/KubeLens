@@ -46,7 +46,7 @@ export class SpecWebview {
 
     private getHtmlForWebview() {
         const title = `${this.kind} - ${this.name}.yaml`;
-        
+
         return `
             <!DOCTYPE html>
             <html lang="en">
@@ -71,11 +71,11 @@ export class SpecWebview {
                         border-bottom: 1px solid var(--vscode-widget-border);
                         justify-content: flex-start;
                         gap: 8px;
-                        min-height: 26px; /* Matches logs bar with padding */
+                        min-height: 24px;
                     }
                     .toolbar-btn {
-                        width: 28px;
-                        height: 28px;
+                        width: 26px;
+                        height: 26px;
                         display: flex;
                         align-items: center;
                         justify-content: center;
@@ -96,7 +96,7 @@ export class SpecWebview {
                     }
                     #editor-container {
                         width: 100%;
-                        height: calc(100vh - 44px); /* Adjusted for toolbar height with padding */
+                        height: calc(100vh - 39px); /* Adjusted for 6px+6px padding and 26px content height */
                     }
                 </style>
             </head>
