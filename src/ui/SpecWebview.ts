@@ -146,6 +146,10 @@ export class SpecWebview {
                                 horizontal: 'visible'
                             }
                         });
+
+                        document.getElementById('btnFind').addEventListener('click', () => {
+                            editor.getAction('actions.find').run();
+                        });
                     });
                 </script>
             </body>
