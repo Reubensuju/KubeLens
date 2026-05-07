@@ -3,6 +3,7 @@ import { KubeLensTreeDataProvider, BaseTreeItem } from './ui/KubeLensTreeDataPro
 import { ResourceWebview } from './ui/ResourceWebview';
 
 import { LogWebview } from './ui/LogWebview';
+import { SpecWebview } from './ui/SpecWebview';
 
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
@@ -25,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const kubeProvider = new KubeLensTreeDataProvider();
     vscode.window.registerTreeDataProvider('kubelens.clustersView', kubeProvider);
-    
+
     // Register custom URI schemes
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('kubelens', kubelensProvider));
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('kubelens-logs', kubelensProvider));
@@ -65,27 +66,12 @@ export function activate(context: vscode.ExtensionContext) {
                         const { exec } = require('child_process');
                         const util = require('util');
                         const execAsync = util.promisify(exec);
-                        
+
                         const cmd = `kubectl get ${kind} ${name} ${nsArg} -o yaml --context ${node.contextName}`;
                         const { stdout } = await execAsync(cmd);
-                        
-                        const kindCapitalized = kind.charAt(0).toUpperCase() + kind.slice(1);
-                        const tabTitle = `${kindCapitalized} - ${name}.yaml`;
-                        const uri = vscode.Uri.parse(`kubelens:${tabTitle}`);
-                        
-                        kubelensProvider.setContent(uri, stdout);
-                        const doc = await vscode.workspace.openTextDocument(uri);
-                        vscode.languages.setTextDocumentLanguage(doc, 'yaml');
-                        
-                        await vscode.commands.executeCommand('vscode.setEditorLayout', {
-                            orientation: 1,
-                            groups: [{ size: 0.5 }, { size: 0.5 }]
-                        });
-                        
-                        await vscode.window.showTextDocument(doc, {
-                            viewColumn: vscode.ViewColumn.Two,
-                            preview: true
-                        });
+
+                        await SpecWebview.createOrShow(kind.charAt(0).toUpperCase() + kind.slice(1), name, stdout, node.contextName!);
+                        await vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
                     } catch (e: any) {
                         vscode.window.showErrorMessage(`Failed to fetch resource spec: ${e.message}`);
                     }
