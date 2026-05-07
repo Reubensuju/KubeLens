@@ -82,15 +82,17 @@ export class SpecWebview {
                         border-radius: 4px;
                         cursor: pointer;
                         color: var(--vscode-foreground);
-                        opacity: 0.7;
+                        opacity: 0.8;
+                        transition: color 0.1s ease;
                     }
                     .toolbar-btn:hover {
-                        background-color: var(--vscode-toolbar-hoverBackground);
+                        background-color: transparent;
+                        color: var(--vscode-focusBorder);
                         opacity: 1;
                     }
                     .toolbar-btn svg {
-                        width: 16px;
-                        height: 16px;
+                        width: 18px;
+                        height: 18px;
                     }
                     #editor-container {
                         width: 100%;
