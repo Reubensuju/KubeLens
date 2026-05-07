@@ -70,14 +70,6 @@ export function activate(context: vscode.ExtensionContext) {
                         const cmd = `kubectl get ${kind} ${name} ${nsArg} -o yaml --context ${node.contextName}`;
                         const { stdout } = await execAsync(cmd);
 
-                        const kindCapitalized = kind.charAt(0).toUpperCase() + kind.slice(1);
-                        const tabTitle = `${kindCapitalized} - ${name}.yaml`;
-                        const uri = vscode.Uri.parse(`kubelens:${tabTitle}`);
-
-                        kubelensProvider.setContent(uri, stdout);
-                        const doc = await vscode.workspace.openTextDocument(uri);
-                        vscode.languages.setTextDocumentLanguage(doc, 'yaml');
-
                         await SpecWebview.createOrShow(kind.charAt(0).toUpperCase() + kind.slice(1), name, stdout, node.contextName!);
                         await vscode.commands.executeCommand('workbench.action.editorLayoutTwoRows');
                     } catch (e: any) {
