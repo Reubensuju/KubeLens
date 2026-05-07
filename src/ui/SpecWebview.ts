@@ -5,19 +5,20 @@ export class SpecWebview {
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
 
-    private constructor(panel: vscode.WebviewPanel, private kind: string, private name: string, private spec: string) {
+    private constructor(panel: vscode.WebviewPanel, private kind: string, private name: string, private spec: string, private contextName: string) {
         this._panel = panel;
         this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
         this._panel.webview.html = this.getHtmlForWebview();
     }
 
-    public static async createOrShow(kind: string, name: string, spec: string) {
+    public static async createOrShow(kind: string, name: string, spec: string, contextName: string) {
         const column = vscode.ViewColumn.Two;
 
         if (SpecWebview.currentPanel) {
             SpecWebview.currentPanel.kind = kind;
             SpecWebview.currentPanel.name = name;
             SpecWebview.currentPanel.spec = spec;
+            SpecWebview.currentPanel.contextName = contextName;
             SpecWebview.currentPanel._panel.reveal(column);
             SpecWebview.currentPanel._panel.title = `${kind} - ${name}.yaml`;
             SpecWebview.currentPanel._panel.webview.html = SpecWebview.currentPanel.getHtmlForWebview();
@@ -29,8 +30,46 @@ export class SpecWebview {
                 { enableScripts: true, retainContextWhenHidden: true }
             );
 
-            SpecWebview.currentPanel = new SpecWebview(panel, kind, name, spec);
+            SpecWebview.currentPanel = new SpecWebview(panel, kind, name, spec, contextName);
         }
+
+        SpecWebview.currentPanel._panel.webview.onDidReceiveMessage(async (message) => {
+            if (message.command === 'saveSpec') {
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const { exec } = require('child_process');
+                    const util = require('util');
+                    const execAsync = util.promisify(exec);
+
+                    const rootPath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || require('os').tmpdir();
+                    const tempDir = path.join(rootPath, '.kubelens-tmp');
+                    if (!fs.existsSync(tempDir)) {
+                        fs.mkdirSync(tempDir, { recursive: true });
+                    }
+                    const tempFile = path.join(tempDir, `apply-${Date.now()}.yaml`);
+                    fs.writeFileSync(tempFile, message.spec);
+
+                    const ctx = SpecWebview.currentPanel?.contextName;
+                    const applyCmd = `kubectl apply -f "${tempFile}" --context ${ctx}`;
+                    
+                    const { stderr } = await execAsync(applyCmd);
+                    
+                    if (stderr && !stderr.includes('configured') && !stderr.includes('unchanged')) {
+                        throw new Error(stderr);
+                    }
+
+                    vscode.window.showInformationMessage(`Successfully applied changes to ${SpecWebview.currentPanel?.kind} ${SpecWebview.currentPanel?.name}`);
+                    
+                    // Cleanup
+                    if (fs.existsSync(tempFile)) {
+                        fs.unlinkSync(tempFile);
+                    }
+                } catch (e: any) {
+                    vscode.window.showErrorMessage(`Failed to apply changes: ${e.message}`);
+                }
+            }
+        });
     }
 
     public dispose() {
@@ -130,7 +169,7 @@ export class SpecWebview {
                             value: \`${this.spec.replace(/`/g, '\\`').replace(/\${/g, '\\${')}\`,
                             language: 'yaml',
                             theme: document.body.classList.contains('vscode-dark') ? 'vs-dark' : 'vs',
-                            readOnly: true,
+                            readOnly: false,
                             automaticLayout: true,
                             fontSize: 13,
                             minimap: { enabled: false },
@@ -145,6 +184,14 @@ export class SpecWebview {
                                 vertical: 'visible',
                                 horizontal: 'visible'
                             }
+                        });
+
+                        document.getElementById('btnSave').addEventListener('click', () => {
+                            const updatedSpec = editor.getValue();
+                            vscode.postMessage({
+                                command: 'saveSpec',
+                                spec: updatedSpec
+                            });
                         });
 
                         document.getElementById('btnFind').addEventListener('click', () => {
