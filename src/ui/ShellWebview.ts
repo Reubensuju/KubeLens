@@ -20,8 +20,8 @@ export class ShellWebview {
                         await this.startShell(message.pod, message.container);
                         return;
                     case 'input':
-                        if (this._shellProcess) {
-                            this._shellProcess.write(message.data);
+                        if (this._shellProcess && this._shellProcess.stdin) {
+                            this._shellProcess.stdin.write(message.data);
                         }
                         return;
                 }
@@ -131,43 +131,40 @@ export class ShellWebview {
 
         this._panel.webview.postMessage({ command: 'clearShell' });
 
-        const pty = require('node-pty');
+        const { spawn } = require('child_process');
         const { namespace } = this.resourceInfo;
         const nsArg = namespace && namespace !== 'undefined' && namespace !== 'null' ? ['-n', namespace] : [];
         
-        const args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
+        const args = ['exec', '-i', podName, '--context', this.node.contextName!, ...nsArg];
         if (containerName) {
             args.push('-c', containerName);
         }
         
-        args.push('--', 'sh', '-c', 'bash || sh');
+        args.push('--', 'bash');
 
         try {
-            const { execSync } = require('child_process');
-            let kubectlPath = 'kubectl';
-            try {
-                kubectlPath = execSync('which kubectl').toString().trim();
-            } catch (e) {
-                // fallback if which fails
-            }
+            this._shellProcess = spawn('kubectl', args);
 
-            this._shellProcess = pty.spawn(kubectlPath, args, {
-                name: 'xterm-color',
-                cols: 120,
-                rows: 30,
-                cwd: process.env.HOME || '/',
-                env: process.env as any
+            this._shellProcess.stdout.on('data', (data: Buffer) => {
+                this._panel.webview.postMessage({ command: 'output', data: data.toString() });
             });
 
-            this._shellProcess.onData((data: string) => {
-                this._panel.webview.postMessage({ command: 'output', data });
+            this._shellProcess.stderr.on('data', (data: Buffer) => {
+                this._panel.webview.postMessage({ command: 'output', data: data.toString() });
             });
 
-            this._shellProcess.onExit(({ exitCode }: { exitCode: number }) => {
-                this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${exitCode}]\r\n` });
+            this._shellProcess.on('close', (code: number) => {
+                this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${code}]\r\n` });
             });
+
+            // Send initial prompt setup
+            this._panel.webview.postMessage({ command: 'setPrompt', podName });
+            setTimeout(() => {
+                this._panel.webview.postMessage({ command: 'output', data: `__KUBELENS_PROMPT__` });
+            }, 300);
+
         } catch (e: any) {
-            this._panel.webview.postMessage({ command: 'output', data: `Failed to start pty: ${e.message}\r\n` });
+            this._panel.webview.postMessage({ command: 'output', data: `Failed to start shell: ${e.message}\r\n` });
         }
     }
 
@@ -281,13 +278,15 @@ export class ShellWebview {
                         fitAddon.fit();
                     });
 
-                    term.onData(data => {
-                        vscode.postMessage({ command: 'input', data });
-                    });
+                    let inputBuffer = '';
+                    let currentPrompt = 'root@pod:/# ';
 
                     window.addEventListener('message', event => {
                         const message = event.data;
                         switch (message.command) {
+                            case 'setPrompt':
+                                currentPrompt = \`root@\${message.podName}:/# \`;
+                                break;
                             case 'initFilters':
                                 populateCustomDropdown(podSelectDetails, message.pods, message.selectedPod);
                                 populateCustomDropdown(containerSelectDetails, message.containers, message.selectedContainer);
@@ -295,11 +294,45 @@ export class ShellWebview {
                                 containerSelectContainer.style.display = message.containers.length > 1 ? 'block' : 'none';
                                 break;
                             case 'output':
-                                term.write(message.data);
+                                let output = message.data.replace(/([^\r])\n/g, '$1\r\n');
+                                if (output.startsWith('\n')) output = '\r' + output;
+                                
+                                if (output.includes('__KUBELENS_PROMPT__')) {
+                                    output = output.replace(/__KUBELENS_PROMPT__\r?\n?/g, '\r\n' + currentPrompt);
+                                }
+                                term.write(output);
                                 break;
                             case 'clearShell':
                                 term.clear();
                                 break;
+                        }
+                    });
+
+                    term.onData(data => {
+                        if (data === '\r') {
+                            term.write('\r\n');
+                            const cmd = inputBuffer.trim();
+                            if (cmd) {
+                                let injected = cmd;
+                                if (cmd.startsWith('ls')) {
+                                    injected = cmd.replace(/^ls/, 'ls --color=auto -C');
+                                }
+                                vscode.postMessage({ command: 'input', data: injected + '; echo "__KUBELENS_PROMPT__"\n' });
+                            } else {
+                                term.write(currentPrompt);
+                            }
+                            inputBuffer = '';
+                        } else if (data === '\u007F') { // Backspace
+                            if (inputBuffer.length > 0) {
+                                inputBuffer = inputBuffer.slice(0, -1);
+                                term.write('\b \b');
+                            }
+                        } else if (data === '\x03') { // Ctrl+C
+                            term.write('^C\r\n' + currentPrompt);
+                            inputBuffer = '';
+                        } else {
+                            inputBuffer += data;
+                            term.write(data);
                         }
                     });
 
