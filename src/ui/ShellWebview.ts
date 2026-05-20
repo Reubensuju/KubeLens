@@ -143,7 +143,15 @@ export class ShellWebview {
         args.push('--', 'sh', '-c', 'bash || sh');
 
         try {
-            this._shellProcess = pty.spawn('kubectl', args, {
+            const { execSync } = require('child_process');
+            let kubectlPath = 'kubectl';
+            try {
+                kubectlPath = execSync('which kubectl').toString().trim();
+            } catch (e) {
+                // fallback if which fails
+            }
+
+            this._shellProcess = pty.spawn(kubectlPath, args, {
                 name: 'xterm-color',
                 cols: 120,
                 rows: 30,
