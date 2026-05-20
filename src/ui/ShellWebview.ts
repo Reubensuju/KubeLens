@@ -306,11 +306,11 @@ export class ShellWebview {
                                 containerSelectContainer.style.display = message.containers.length > 1 ? 'block' : 'none';
                                 break;
                             case 'output':
-                                let output = message.data.replace(/([^\r])\n/g, '$1\r\n');
-                                if (output.startsWith('\n')) output = '\r' + output;
+                                let output = message.data.replace(/([^\\r])\\n/g, '$1\\r\\n');
+                                if (output.startsWith('\\n')) output = '\\r' + output;
                                 
                                 if (output.includes('__KUBELENS_PROMPT__')) {
-                                    output = output.replace(/__KUBELENS_PROMPT__\r?\n?/g, '\r\n' + currentPrompt);
+                                    output = output.replace(/__KUBELENS_PROMPT__\\r?\\n?/g, '\\r\\n' + currentPrompt);
                                 }
                                 term.write(output);
                                 break;
@@ -321,26 +321,26 @@ export class ShellWebview {
                     });
 
                     term.onData(data => {
-                        if (data === '\r') {
-                            term.write('\r\n');
+                        if (data === '\\r') {
+                            term.write('\\r\\n');
                             const cmd = inputBuffer.trim();
                             if (cmd) {
                                 let injected = cmd;
                                 if (cmd.startsWith('ls')) {
                                     injected = cmd.replace(/^ls/, 'ls --color=auto -C');
                                 }
-                                vscode.postMessage({ command: 'input', data: injected + '; echo "__KUBELENS_PROMPT__"\n' });
+                                vscode.postMessage({ command: 'input', data: injected + '; echo "__KUBELENS_PROMPT__"\\n' });
                             } else {
                                 term.write(currentPrompt);
                             }
                             inputBuffer = '';
-                        } else if (data === '\u007F') { // Backspace
+                        } else if (data === '\\u007F') { // Backspace
                             if (inputBuffer.length > 0) {
                                 inputBuffer = inputBuffer.slice(0, -1);
-                                term.write('\b \b');
+                                term.write('\\b \\b');
                             }
-                        } else if (data === '\x03') { // Ctrl+C
-                            term.write('^C\r\n' + currentPrompt);
+                        } else if (data === '\\x03') { // Ctrl+C
+                            term.write('^C\\r\\n' + currentPrompt);
                             inputBuffer = '';
                         } else {
                             inputBuffer += data;
