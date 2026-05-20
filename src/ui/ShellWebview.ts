@@ -327,6 +327,12 @@ export class ShellWebview {
                         if (data === '\\r') {
                             term.write('\\r\\n');
                             const cmd = inputBuffer.trim();
+                            if (cmd === 'clear') {
+                                term.clear();
+                                term.write(currentPrompt);
+                                inputBuffer = '';
+                                return;
+                            }
                             if (cmd) {
                                 let injected = cmd;
                                 if (cmd.startsWith('ls')) {
