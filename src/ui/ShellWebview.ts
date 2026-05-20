@@ -261,15 +261,21 @@ export class ShellWebview {
                     let wholeWord = false;
                     let useRegex = false;
 
+                    const computedStyle = getComputedStyle(document.body);
+                    let fontFamily = computedStyle.getPropertyValue('--vscode-editor-font-family').trim();
+                    if (!fontFamily || fontFamily.startsWith('var')) fontFamily = 'monospace';
+                    
+                    let bg = computedStyle.getPropertyValue('--vscode-editor-background').trim();
+                    let fg = computedStyle.getPropertyValue('--vscode-editor-foreground').trim();
+                    if (!bg) bg = '#1e1e1e';
+                    if (!fg) fg = '#cccccc';
+
                     const terminalContainer = document.getElementById('terminal-container');
                     const term = new Terminal({
                         cursorBlink: true,
-                        fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                        fontFamily: fontFamily,
                         fontSize: 13,
-                        theme: {
-                            background: getComputedStyle(document.body).getPropertyValue('--vscode-editor-background') || '#1e1e1e',
-                            foreground: getComputedStyle(document.body).getPropertyValue('--vscode-editor-foreground') || '#cccccc'
-                        }
+                        theme: { background: bg, foreground: fg }
                     });
 
                     const fitAddon = new FitAddon.FitAddon();
