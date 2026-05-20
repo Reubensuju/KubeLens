@@ -274,7 +274,8 @@ export class ShellWebview {
                     const term = new Terminal({
                         cursorBlink: true,
                         fontFamily: fontFamily,
-                        fontSize: 13,
+                        fontSize: 12,
+                        lineHeight: 1.4,
                         theme: { background: bg, foreground: fg }
                     });
 
