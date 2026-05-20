@@ -312,7 +312,7 @@ export class ShellWebview {
                                 
                                 if (output.includes('__KUBELENS_PROMPT__')) {
                                     output = output.replace(/(\\r?\\n)?__KUBELENS_PROMPT__(\\r?\\n)?/g, (match, p1) => {
-                                        return p1 ? '\\\\r\\\\n' + currentPrompt : currentPrompt;
+                                        return p1 ? String.fromCharCode(13, 10) + currentPrompt : currentPrompt;
                                     });
                                 }
                                 term.write(output);
