@@ -4,6 +4,7 @@ import { ResourceWebview } from './ui/ResourceWebview';
 
 import { LogWebview } from './ui/LogWebview';
 import { SpecWebview } from './ui/SpecWebview';
+import { ShellWebview } from './ui/ShellWebview';
 
 // Map storing active webview panels keyed by Kubernetes Context Name
 const clusterPanels: Map<string, vscode.WebviewPanel> = new Map();
@@ -77,6 +78,8 @@ export function activate(context: vscode.ExtensionContext) {
                     }
                 } else if (command === 'logs') {
                     await LogWebview.createOrShow(node, { kind, name, namespace });
+                } else if (command === 'shell') {
+                    await ShellWebview.createOrShow(node, { kind, name, namespace });
                 }
             });
         }
