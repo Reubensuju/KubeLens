@@ -20,8 +20,8 @@ export class ShellWebview {
                         await this.startShell(message.pod, message.container);
                         return;
                     case 'input':
-                        if (this._shellProcess && this._shellProcess.stdin) {
-                            this._shellProcess.stdin.write(message.data);
+                        if (this._shellProcess) {
+                            this._shellProcess.write(message.data);
                         }
                         return;
                 }
@@ -125,43 +125,42 @@ export class ShellWebview {
 
     private async startShell(podName: string, containerName: string) {
         if (this._shellProcess) {
-            this._shellProcess.removeAllListeners();
             this._shellProcess.kill();
             this._shellProcess = null;
         }
 
         this._panel.webview.postMessage({ command: 'clearShell' });
-        this._panel.webview.postMessage({ command: 'output', data: `Connecting to ${podName}... \r\n` });
 
-        const { spawn } = require('child_process');
+        const pty = require('node-pty');
         const { namespace } = this.resourceInfo;
         const nsArg = namespace && namespace !== 'undefined' && namespace !== 'null' ? ['-n', namespace] : [];
         
-        // Use -i to keep stdin open. -t cannot be used easily without a PTY.
-        const args = ['exec', '-i', podName, '--context', this.node.contextName!, ...nsArg];
+        const args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
         if (containerName) {
             args.push('-c', containerName);
         }
         
         args.push('--', 'sh', '-c', 'bash || sh');
 
-        this._shellProcess = spawn('kubectl', args);
+        try {
+            this._shellProcess = pty.spawn('kubectl', args, {
+                name: 'xterm-color',
+                cols: 120,
+                rows: 30,
+                cwd: process.env.HOME || '/',
+                env: process.env as any
+            });
 
-        this._shellProcess.stdout.on('data', (data: Buffer) => {
-            this._panel.webview.postMessage({ command: 'output', data: data.toString() });
-        });
+            this._shellProcess.onData((data: string) => {
+                this._panel.webview.postMessage({ command: 'output', data });
+            });
 
-        this._shellProcess.stderr.on('data', (data: Buffer) => {
-            this._panel.webview.postMessage({ command: 'output', data: data.toString() });
-        });
-
-        this._shellProcess.on('close', (code: number) => {
-            this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${code}]\r\n` });
-        });
-        
-        // If there's no PTY, bash won't show a prompt by default in non-interactive mode.
-        // We can send a test command to show it's working.
-        this._panel.webview.postMessage({ command: 'output', data: `Connected.\r\n> ` });
+            this._shellProcess.onExit(({ exitCode }: { exitCode: number }) => {
+                this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${exitCode}]\r\n` });
+            });
+        } catch (e: any) {
+            this._panel.webview.postMessage({ command: 'output', data: `Failed to start pty: ${e.message}\r\n` });
+        }
     }
 
     public dispose() {
@@ -274,23 +273,8 @@ export class ShellWebview {
                         fitAddon.fit();
                     });
 
-                    // Keep track of input for local echo since we don't have a PTY
-                    let inputBuffer = '';
-
                     term.onData(data => {
-                        if (data === '\\r') {
-                            term.write('\\r\\n');
-                            vscode.postMessage({ command: 'input', data: inputBuffer + '\\n' });
-                            inputBuffer = '';
-                        } else if (data === '\\u007F') { // Backspace
-                            if (inputBuffer.length > 0) {
-                                inputBuffer = inputBuffer.slice(0, -1);
-                                term.write('\\b \\b');
-                            }
-                        } else {
-                            inputBuffer += data;
-                            term.write(data);
-                        }
+                        vscode.postMessage({ command: 'input', data });
                     });
 
                     window.addEventListener('message', event => {
@@ -303,10 +287,7 @@ export class ShellWebview {
                                 containerSelectContainer.style.display = message.containers.length > 1 ? 'block' : 'none';
                                 break;
                             case 'output':
-                                // Clean up bare newlines to CRLF for xterm
-                                let output = message.data.replace(/([^\\r])\\n/g, '$1\\r\\n');
-                                if (output.startsWith('\\n')) output = '\\r' + output;
-                                term.write(output);
+                                term.write(message.data);
                                 break;
                             case 'clearShell':
                                 term.clear();
