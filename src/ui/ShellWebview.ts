@@ -311,7 +311,9 @@ export class ShellWebview {
                                 if (output.startsWith('\\n')) output = '\\r' + output;
                                 
                                 if (output.includes('__KUBELENS_PROMPT__')) {
-                                    output = output.replace(/__KUBELENS_PROMPT__\\r?\\n?/g, '\\r\\n' + currentPrompt);
+                                    output = output.replace(/(\\r?\\n)?__KUBELENS_PROMPT__(\\r?\\n)?/g, (match, p1) => {
+                                        return p1 ? '\\\\r\\\\n' + currentPrompt : currentPrompt;
+                                    });
                                 }
                                 term.write(output);
                                 break;
