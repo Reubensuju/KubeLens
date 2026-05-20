@@ -20,8 +20,8 @@ export class ShellWebview {
                         await this.startShell(message.pod, message.container);
                         return;
                     case 'input':
-                        if (this._shellProcess && this._shellProcess.stdin) {
-                            this._shellProcess.stdin.write(message.data);
+                        if (this._shellProcess) {
+                            this._shellProcess.write(message.data);
                         }
                         return;
                     case 'error':
@@ -81,10 +81,6 @@ export class ShellWebview {
 
             if (kind === 'deployment' || kind === 'job' || kind === 'node') {
                 if (kind === 'node') {
-                    // For a node, we might want to start a privileged pod or just list pods on the node.
-                    // But shell into a node isn't directly supported via kubectl exec. Let's just pass node name 
-                    // and handle it if possible, but standard kubectl doesn't have `kubectl shell node`.
-                    // A workaround is `kubectl debug node/...`. We'll just alert for now.
                     this._panel.webview.postMessage({ command: 'output', data: 'Shelling directly into a Node requires privileged pods (like kubectl debug). Only Pods are fully supported for now.\r\n' });
                     return;
                 } else {
@@ -134,40 +130,74 @@ export class ShellWebview {
 
         this._panel.webview.postMessage({ command: 'clearShell' });
 
-        const { spawn } = require('child_process');
+        const fs = require('fs');
+        const path = require('path');
+        const platform = process.platform;
+        const arch = process.arch;
+
+        // 1. Ensure spawn-helper is executable on macOS
+        if (platform === 'darwin') {
+            const helperPath = path.join(__dirname, '..', '..', 'node_modules', 'node-pty', 'prebuilds', `darwin-${arch}`, 'spawn-helper');
+            if (fs.existsSync(helperPath)) {
+                try {
+                    fs.chmodSync(helperPath, 0o755);
+                } catch (e) {
+                    console.error('Failed to set execute permission on spawn-helper:', e);
+                }
+            }
+        }
+
+        // 2. Resolve full path to kubectl
+        let kubectlPath = 'kubectl';
+        try {
+            const { execSync } = require('child_process');
+            kubectlPath = execSync('which kubectl').toString().trim();
+        } catch (e) {
+            // Fallback to common absolute paths if 'which' fails
+            const commonPaths = [
+                '/opt/homebrew/bin/kubectl',
+                '/usr/local/bin/kubectl',
+                '/usr/bin/kubectl',
+                '/bin/kubectl'
+            ];
+            for (const p of commonPaths) {
+                if (fs.existsSync(p)) {
+                    kubectlPath = p;
+                    break;
+                }
+            }
+        }
+
+        const pty = require('node-pty');
         const { namespace } = this.resourceInfo;
         const nsArg = namespace && namespace !== 'undefined' && namespace !== 'null' ? ['-n', namespace] : [];
         
-        const args = ['exec', '-i', podName, '--context', this.node.contextName!, ...nsArg];
+        const args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
         if (containerName) {
             args.push('-c', containerName);
         }
         
-        args.push('--', 'bash');
+        args.push('--', 'sh', '-c', 'bash || sh');
 
         try {
-            this._shellProcess = spawn('kubectl', args);
-
-            this._shellProcess.stdout.on('data', (data: Buffer) => {
-                this._panel.webview.postMessage({ command: 'output', data: data.toString() });
+            this._shellProcess = pty.spawn(kubectlPath, args, {
+                name: 'xterm-color',
+                cols: 120,
+                rows: 30,
+                cwd: process.env.HOME || '/',
+                env: process.env as any
             });
 
-            this._shellProcess.stderr.on('data', (data: Buffer) => {
-                this._panel.webview.postMessage({ command: 'output', data: data.toString() });
+            this._shellProcess.onData((data: string) => {
+                this._panel.webview.postMessage({ command: 'output', data });
             });
 
-            this._shellProcess.on('close', (code: number) => {
-                this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${code}]\r\n` });
+            this._shellProcess.onExit(({ exitCode }: { exitCode: number }) => {
+                this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${exitCode}]\r\n` });
             });
-
-            // Send initial prompt setup
-            this._panel.webview.postMessage({ command: 'setPrompt', podName });
-            setTimeout(() => {
-                this._panel.webview.postMessage({ command: 'output', data: `__KUBELENS_PROMPT__` });
-            }, 300);
 
         } catch (e: any) {
-            this._panel.webview.postMessage({ command: 'output', data: `Failed to start shell: ${e.message}\r\n` });
+            this._panel.webview.postMessage({ command: 'output', data: `Failed to start pty: ${e.message}\r\n` });
         }
     }
 
@@ -291,15 +321,13 @@ export class ShellWebview {
                         fitAddon.fit();
                     });
 
-                    let inputBuffer = '';
-                    let currentPrompt = 'root@pod:/# ';
+                    term.onData(data => {
+                        vscode.postMessage({ command: 'input', data });
+                    });
 
                     window.addEventListener('message', event => {
                         const message = event.data;
                         switch (message.command) {
-                            case 'setPrompt':
-                                currentPrompt = \`root@\${message.podName}:/# \`;
-                                break;
                             case 'initFilters':
                                 populateCustomDropdown(podSelectDetails, message.pods, message.selectedPod);
                                 populateCustomDropdown(containerSelectDetails, message.containers, message.selectedContainer);
@@ -307,53 +335,11 @@ export class ShellWebview {
                                 containerSelectContainer.style.display = message.containers.length > 1 ? 'block' : 'none';
                                 break;
                             case 'output':
-                                let output = message.data.replace(/([^\\r])\\n/g, '$1\\r\\n');
-                                if (output.startsWith('\\n')) output = '\\r' + output;
-                                
-                                if (output.includes('__KUBELENS_PROMPT__')) {
-                                    output = output.replace(/(\\r?\\n)?__KUBELENS_PROMPT__(\\r?\\n)?/g, (match, p1) => {
-                                        return p1 ? String.fromCharCode(13, 10) + currentPrompt : currentPrompt;
-                                    });
-                                }
-                                term.write(output);
+                                term.write(message.data);
                                 break;
                             case 'clearShell':
                                 term.clear();
                                 break;
-                        }
-                    });
-
-                    term.onData(data => {
-                        if (data === '\\r') {
-                            term.write('\\r\\n');
-                            const cmd = inputBuffer.trim();
-                            if (cmd === 'clear') {
-                                term.clear();
-                                term.write(currentPrompt);
-                                inputBuffer = '';
-                                return;
-                            }
-                            if (cmd) {
-                                let injected = cmd;
-                                if (cmd.startsWith('ls')) {
-                                    injected = cmd.replace(/^ls/, 'ls --color=auto -C');
-                                }
-                                vscode.postMessage({ command: 'input', data: injected + '; echo "__KUBELENS_PROMPT__"\\n' });
-                            } else {
-                                term.write(currentPrompt);
-                            }
-                            inputBuffer = '';
-                        } else if (data === '\\u007F') { // Backspace
-                            if (inputBuffer.length > 0) {
-                                inputBuffer = inputBuffer.slice(0, -1);
-                                term.write('\\b \\b');
-                            }
-                        } else if (data === '\\x03') { // Ctrl+C
-                            term.write('^C\\r\\n' + currentPrompt);
-                            inputBuffer = '';
-                        } else {
-                            inputBuffer += data;
-                            term.write(data);
                         }
                     });
 
