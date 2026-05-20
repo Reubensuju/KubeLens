@@ -24,6 +24,9 @@ export class ShellWebview {
                             this._shellProcess.stdin.write(message.data);
                         }
                         return;
+                    case 'error':
+                        vscode.window.showErrorMessage('ShellWebview Error: ' + message.data);
+                        return;
                 }
             },
             null,
@@ -233,6 +236,9 @@ export class ShellWebview {
 
                 <script>
                     const vscode = acquireVsCodeApi();
+                    window.onerror = function(msg, url, line, col, error) {
+                        vscode.postMessage({ command: 'error', data: msg + ' at ' + line + ':' + col });
+                    };
                     
                     const podSelectDetails = document.getElementById('podSelectDetails');
                     const podSelectSummary = document.getElementById('podSelectSummary');
