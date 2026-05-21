@@ -183,7 +183,19 @@ export class ShellWebview {
         
         let args: string[];
         if (kind === 'node') {
-            args = ['debug', `node/${podName}`, '--context', this.node.contextName!, ...nsArg, '-it', '--image=busybox'];
+            args = [
+                'debug',
+                `node/${podName}`,
+                '--context', this.node.contextName!,
+                ...nsArg,
+                '-it',
+                '-q',
+                '--image=busybox',
+                '--',
+                'sh',
+                '-c',
+                `export PS1='root@${podName}:/# '; exec sh`
+            ];
         } else {
             args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
             if (containerName) {
