@@ -82,8 +82,8 @@ export class ShellWebview {
 
             if (kind === 'deployment' || kind === 'job' || kind === 'node') {
                 if (kind === 'node') {
-                    this._panel.webview.postMessage({ command: 'output', data: 'Shelling directly into a Node requires privileged pods (like kubectl debug). Only Pods are fully supported for now.\r\n' });
-                    return;
+                    pods = [name];
+                    containers = [];
                 } else {
                     const cmd = `kubectl get pods ${nsArg} -o json --context ${this.node.contextName}`;
                     const { stdout } = await execAsync(cmd);
@@ -178,15 +178,19 @@ export class ShellWebview {
         }
 
         const pty = require('node-pty');
-        const { namespace } = this.resourceInfo;
+        const { namespace, kind } = this.resourceInfo;
         const nsArg = namespace && namespace !== 'undefined' && namespace !== 'null' ? ['-n', namespace] : [];
         
-        const args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
-        if (containerName) {
-            args.push('-c', containerName);
+        let args: string[];
+        if (kind === 'node') {
+            args = ['debug', `node/${podName}`, '--context', this.node.contextName!, ...nsArg, '-it', '--image=busybox'];
+        } else {
+            args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
+            if (containerName) {
+                args.push('-c', containerName);
+            }
+            args.push('--', 'sh', '-c', 'bash || sh');
         }
-        
-        args.push('--', 'sh', '-c', 'bash || sh');
 
         try {
             this._shellProcess = pty.spawn(kubectlPath, args, {
