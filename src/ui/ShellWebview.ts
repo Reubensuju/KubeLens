@@ -297,6 +297,12 @@ export class ShellWebview {
                     .xterm {
                         height: 100%;
                     }
+                    .xterm-find-result-decoration {
+                        background-color: var(--vscode-editor-findMatchHighlightBackground, rgba(255, 255, 0, 0.3)) !important;
+                    }
+                    .xterm-find-active-result-decoration {
+                        background-color: var(--vscode-editor-findMatchBackground, rgba(255, 165, 0, 0.6)) !important;
+                    }
                 </style>
             </head>
             <body>
@@ -340,8 +346,8 @@ export class ShellWebview {
                     if (!fg) fg = '#cccccc';
 
                     const searchDecorations = {
-                        matchBackground: computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBackground').trim() || 'rgba(255, 255, 0, 0.3)',
-                        activeMatchBackground: computedStyle.getPropertyValue('--vscode-editor-findMatchBackground').trim() || 'rgba(255, 165, 0, 0.6)'
+                        matchBackground: 'transparent',
+                        activeMatchBackground: 'transparent'
                     };
 
                     const terminalContainer = document.getElementById('terminal-container');
