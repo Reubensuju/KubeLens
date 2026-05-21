@@ -26,6 +26,15 @@ export class ShellWebview {
                             this._shellProcess.write(message.data);
                         }
                         return;
+                    case 'resize':
+                        if (this._shellProcess) {
+                            try {
+                                this._shellProcess.resize(message.cols, message.rows);
+                            } catch (e) {
+                                console.error('Failed to resize PTY:', e);
+                            }
+                        }
+                        return;
                     case 'error':
                         vscode.window.showErrorMessage('ShellWebview Error: ' + message.data);
                         return;
@@ -346,9 +355,19 @@ export class ShellWebview {
                     term.loadAddon(searchAddon);
                     term.open(terminalContainer);
                     fitAddon.fit();
+                    vscode.postMessage({
+                        command: 'resize',
+                        cols: term.cols,
+                        rows: term.rows
+                    });
                     
                     window.addEventListener('resize', () => {
                         fitAddon.fit();
+                        vscode.postMessage({
+                            command: 'resize',
+                            cols: term.cols,
+                            rows: term.rows
+                        });
                     });
 
                     term.onData(data => {
