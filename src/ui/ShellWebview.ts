@@ -340,6 +340,9 @@ export class ShellWebview {
                     let fontFamily = computedStyle.getPropertyValue('--vscode-editor-font-family').trim();
                     if (!fontFamily || fontFamily.startsWith('var')) fontFamily = 'monospace';
                     
+                    let fontSize = parseInt(computedStyle.getPropertyValue('--vscode-editor-font-size').trim(), 10);
+                    if (isNaN(fontSize) || fontSize <= 0) fontSize = 12;
+                    
                     let bg = computedStyle.getPropertyValue('--vscode-editor-background').trim();
                     let fg = computedStyle.getPropertyValue('--vscode-editor-foreground').trim();
                     if (!bg) bg = '#1e1e1e';
@@ -354,7 +357,7 @@ export class ShellWebview {
                     const term = new Terminal({
                         cursorBlink: true,
                         fontFamily: fontFamily,
-                        fontSize: 12,
+                        fontSize: fontSize,
                         lineHeight: 1.4,
                         theme: { background: bg, foreground: fg },
                         allowProposedApi: true
