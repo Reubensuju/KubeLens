@@ -36,7 +36,7 @@ export class LogWebview {
 
         if (LogWebview.currentPanel) {
             LogWebview.currentPanel._panel.reveal(column);
-            LogWebview.currentPanel.updateResource(node, resourceInfo);
+            await LogWebview.currentPanel.updateResource(node, resourceInfo);
         } else {
             const panel = vscode.window.createWebviewPanel(
                 'kubelensLogView',
@@ -46,9 +46,8 @@ export class LogWebview {
             );
 
             LogWebview.currentPanel = new LogWebview(panel, node, resourceInfo);
+            await LogWebview.currentPanel.initialize();
         }
-
-        await LogWebview.currentPanel.initialize();
     }
 
     private async updateResource(node: BaseTreeItem, resourceInfo: any) {

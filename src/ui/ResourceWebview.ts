@@ -212,6 +212,7 @@ export class ResourceWebview {
                         </summary>
                         <div class="action-dropdown">
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'node', name: '${name}', namespace: '${ns}'})">Edit</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'shell', kind: 'node', name: '${name}', namespace: '${ns}'})">Shell</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'node', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>
@@ -280,6 +281,7 @@ export class ResourceWebview {
                         <div class="action-dropdown">
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'edit', kind: 'pod', name: '${name}', namespace: '${ns}'})">Edit</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'logs', kind: 'pod', name: '${name}', namespace: '${ns}'})">Logs</div>
+                            <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'shell', kind: 'pod', name: '${name}', namespace: '${ns}'})">Shell</div>
                             <div class="action-dropdown-item" onclick="vscode.postMessage({command: 'delete', kind: 'pod', name: '${name}', namespace: '${ns}'})">Delete</div>
                         </div>
                     </details></td>

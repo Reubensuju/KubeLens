@@ -2,8 +2,8 @@
   "name": "kubelens",
   "publisher": "skrye",
   "displayName": "KubeLens",
-  "description": "Professional-grade Kubernetes observability UI directly inside your editor.",
-  "version": "1.0.0",
+  "description": "High-fidelity Kubernetes cluster viewer for VS Code",
+  "version": "1.1.0",
   "icon": "resources/kubelens-icon.png",
   "repository": {
     "type": "git",
@@ -76,6 +76,7 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^1.4.0"
+    "@kubernetes/client-node": "^1.4.0",
+    "node-pty": "^1.1.0"
   }
 }
