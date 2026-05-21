@@ -339,6 +339,39 @@ export class ShellWebview {
                     if (!bg) bg = '#1e1e1e';
                     if (!fg) fg = '#cccccc';
 
+                    function parseToHex(colorStr, defaultHex) {
+                        if (!colorStr) return defaultHex;
+                        colorStr = colorStr.trim();
+                        if (colorStr.startsWith('#')) {
+                            if (colorStr.length > 7) {
+                                return colorStr.substring(0, 7);
+                            }
+                            return colorStr;
+                        }
+                        if (colorStr.startsWith('rgb')) {
+                            const matches = colorStr.match(/\d+/g);
+                            if (matches && matches.length >= 3) {
+                                const r = parseInt(matches[0]).toString(16).padStart(2, '0');
+                                const g = parseInt(matches[1]).toString(16).padStart(2, '0');
+                                const b = parseInt(matches[2]).toString(16).padStart(2, '0');
+                                return '#' + r + g + b;
+                            }
+                        }
+                        return defaultHex;
+                    }
+
+                    const highlightBgColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBackground'), '#ffff00');
+                    const activeBgColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchBackground'), '#ffa500');
+                    const borderColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBorder'), '#888888');
+                    const activeBorderColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchBorder'), '#ff0000');
+
+                    const searchDecorations = {
+                        matchBackground: highlightBgColor,
+                        matchBorder: borderColor,
+                        activeMatchBackground: activeBgColor,
+                        activeMatchBorder: activeBorderColor
+                    };
+
                     const terminalContainer = document.getElementById('terminal-container');
                     const term = new Terminal({
                         cursorBlink: true,
@@ -353,6 +386,18 @@ export class ShellWebview {
                     
                     term.loadAddon(fitAddon);
                     term.loadAddon(searchAddon);
+
+                    searchAddon.onDidChangeResults(event => {
+                        const countDisplay = document.getElementById('itemCountDisplay');
+                        if (countDisplay) {
+                            if (event && event.resultCount > 0) {
+                                const activeNum = event.resultIndex + 1;
+                                countDisplay.innerText = activeNum + '/' + event.resultCount;
+                            } else {
+                                countDisplay.innerText = searchBar.value ? '0/0' : '';
+                            }
+                        }
+                    });
                     term.open(terminalContainer);
                     fitAddon.fit();
                     vscode.postMessage({
@@ -448,27 +493,52 @@ export class ShellWebview {
                         return newState;
                     }
 
-                    if (btnMatchCase) btnMatchCase.onclick = () => { matchCase = toggleBtn(btnMatchCase, matchCase); };
-                    if (btnWholeWord) btnWholeWord.onclick = () => { wholeWord = toggleBtn(btnWholeWord, wholeWord); };
-                    if (btnRegex) btnRegex.onclick = () => { useRegex = toggleBtn(btnRegex, useRegex); };
-
-                    function doSearch() {
+                    function doSearch(incremental = true) {
                         if (searchBar.value) {
                             searchAddon.findNext(searchBar.value, {
                                 regex: useRegex,
                                 wholeWord: wholeWord,
-                                caseSensitive: matchCase
+                                caseSensitive: matchCase,
+                                incremental: incremental,
+                                decorations: searchDecorations
                             });
+                        } else {
+                            searchAddon.findNext('');
+                            const countDisplay = document.getElementById('itemCountDisplay');
+                            if (countDisplay) {
+                                countDisplay.innerText = '';
+                            }
                         }
                     }
 
+                    if (btnMatchCase) btnMatchCase.onclick = () => { matchCase = toggleBtn(btnMatchCase, matchCase); doSearch(true); };
+                    if (btnWholeWord) btnWholeWord.onclick = () => { wholeWord = toggleBtn(btnWholeWord, wholeWord); doSearch(true); };
+                    if (btnRegex) btnRegex.onclick = () => { useRegex = toggleBtn(btnRegex, useRegex); doSearch(true); };
+
                     searchBar.addEventListener('input', () => {
-                        doSearch();
+                        doSearch(true);
                     });
 
                     searchBar.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
-                            doSearch();
+                            if (searchBar.value) {
+                                if (e.shiftKey) {
+                                    searchAddon.findPrevious(searchBar.value, {
+                                        regex: useRegex,
+                                        wholeWord: wholeWord,
+                                        caseSensitive: matchCase,
+                                        decorations: searchDecorations
+                                    });
+                                } else {
+                                    searchAddon.findNext(searchBar.value, {
+                                        regex: useRegex,
+                                        wholeWord: wholeWord,
+                                        caseSensitive: matchCase,
+                                        incremental: false,
+                                        decorations: searchDecorations
+                                    });
+                                }
+                            }
                         }
                     });
                 </script>
