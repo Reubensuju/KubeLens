@@ -7,6 +7,8 @@ export class ShellWebview {
     private readonly _panel: vscode.WebviewPanel;
     private _disposables: vscode.Disposable[] = [];
     private _shellProcess: any = null;
+    private _onDataDisposable: vscode.Disposable | null = null;
+    private _onExitDisposable: vscode.Disposable | null = null;
 
     private constructor(panel: vscode.WebviewPanel, private node: BaseTreeItem, private resourceInfo: any) {
         this._panel = panel;
@@ -44,7 +46,7 @@ export class ShellWebview {
 
         if (ShellWebview.currentPanel) {
             ShellWebview.currentPanel._panel.reveal(column);
-            ShellWebview.currentPanel.updateResource(node, resourceInfo);
+            await ShellWebview.currentPanel.updateResource(node, resourceInfo);
         } else {
             const panel = vscode.window.createWebviewPanel(
                 'kubelensShellView',
@@ -54,9 +56,8 @@ export class ShellWebview {
             );
 
             ShellWebview.currentPanel = new ShellWebview(panel, node, resourceInfo);
+            await ShellWebview.currentPanel.initialize();
         }
-
-        await ShellWebview.currentPanel.initialize();
     }
 
     private async updateResource(node: BaseTreeItem, resourceInfo: any) {
@@ -123,6 +124,14 @@ export class ShellWebview {
     }
 
     private async startShell(podName: string, containerName: string) {
+        if (this._onDataDisposable) {
+            this._onDataDisposable.dispose();
+            this._onDataDisposable = null;
+        }
+        if (this._onExitDisposable) {
+            this._onExitDisposable.dispose();
+            this._onExitDisposable = null;
+        }
         if (this._shellProcess) {
             this._shellProcess.kill();
             this._shellProcess = null;
@@ -188,11 +197,11 @@ export class ShellWebview {
                 env: process.env as any
             });
 
-            this._shellProcess.onData((data: string) => {
+            this._onDataDisposable = this._shellProcess.onData((data: string) => {
                 this._panel.webview.postMessage({ command: 'output', data });
             });
 
-            this._shellProcess.onExit(({ exitCode }: { exitCode: number }) => {
+            this._onExitDisposable = this._shellProcess.onExit(({ exitCode }: { exitCode: number }) => {
                 this._panel.webview.postMessage({ command: 'output', data: `\r\n[Process exited with code ${exitCode}]\r\n` });
             });
 
@@ -203,6 +212,12 @@ export class ShellWebview {
 
     public dispose() {
         ShellWebview.currentPanel = undefined;
+        if (this._onDataDisposable) {
+            this._onDataDisposable.dispose();
+        }
+        if (this._onExitDisposable) {
+            this._onExitDisposable.dispose();
+        }
         if (this._shellProcess) {
             this._shellProcess.kill();
         }
