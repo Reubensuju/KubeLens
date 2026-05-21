@@ -272,10 +272,10 @@ export class ShellWebview {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <link href="https://unpkg.com/@vscode/codicons/dist/codicon.css" rel="stylesheet" />
-                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
-                <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
-                <script src="https://cdn.jsdelivr.net/npm/xterm-addon-search@0.13.0/lib/xterm-addon-search.min.js"></script>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.3.0/css/xterm.css" crossorigin="anonymous" />
+                <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.3.0/lib/xterm.min.js" crossorigin="anonymous"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js" crossorigin="anonymous"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-search@0.16.0/lib/addon-search.min.js" crossorigin="anonymous"></script>
                 <style>
                     ${ToolbarComponent.getStyle()}
                     body {
@@ -381,8 +381,8 @@ export class ShellWebview {
                         theme: { background: bg, foreground: fg }
                     });
 
-                    const fitAddon = new FitAddon.FitAddon();
-                    const searchAddon = new SearchAddon.SearchAddon();
+                    const fitAddon = new (FitAddon.FitAddon || FitAddon)();
+                    const searchAddon = new (SearchAddon.SearchAddon || SearchAddon)();
                     
                     term.loadAddon(fitAddon);
                     term.loadAddon(searchAddon);
