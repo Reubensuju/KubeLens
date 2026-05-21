@@ -346,8 +346,8 @@ export class ShellWebview {
                     if (!fg) fg = '#cccccc';
 
                     const searchDecorations = {
-                        matchBackground: 'transparent',
-                        activeMatchBackground: 'transparent'
+                        matchBackground: '#00000000',
+                        activeMatchBackground: '#00000000'
                     };
 
                     const terminalContainer = document.getElementById('terminal-container');
