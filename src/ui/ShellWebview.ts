@@ -273,7 +273,7 @@ export class ShellWebview {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <link href="https://unpkg.com/@vscode/codicons/dist/codicon.css" rel="stylesheet" />
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.3.0/css/xterm.css" crossorigin="anonymous" />
-                <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.3.0/lib/xterm.min.js" crossorigin="anonymous"></script>
+                <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.3.0/lib/xterm.js" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-search@0.16.0/lib/addon-search.min.js" crossorigin="anonymous"></script>
                 <style>
