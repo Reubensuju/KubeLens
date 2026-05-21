@@ -339,37 +339,9 @@ export class ShellWebview {
                     if (!bg) bg = '#1e1e1e';
                     if (!fg) fg = '#cccccc';
 
-                    function parseToHex(colorStr, defaultHex) {
-                        if (!colorStr) return defaultHex;
-                        colorStr = colorStr.trim();
-                        if (colorStr.startsWith('#')) {
-                            if (colorStr.length > 7) {
-                                return colorStr.substring(0, 7);
-                            }
-                            return colorStr;
-                        }
-                        if (colorStr.startsWith('rgb')) {
-                            const matches = colorStr.match(/\d+/g);
-                            if (matches && matches.length >= 3) {
-                                const r = parseInt(matches[0]).toString(16).padStart(2, '0');
-                                const g = parseInt(matches[1]).toString(16).padStart(2, '0');
-                                const b = parseInt(matches[2]).toString(16).padStart(2, '0');
-                                return '#' + r + g + b;
-                            }
-                        }
-                        return defaultHex;
-                    }
-
-                    const highlightBgColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBackground'), '#ffff00');
-                    const activeBgColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchBackground'), '#ffa500');
-                    const borderColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBorder'), '#888888');
-                    const activeBorderColor = parseToHex(computedStyle.getPropertyValue('--vscode-editor-findMatchBorder'), '#ff0000');
-
                     const searchDecorations = {
-                        matchBackground: highlightBgColor,
-                        matchBorder: borderColor,
-                        activeMatchBackground: activeBgColor,
-                        activeMatchBorder: activeBorderColor
+                        matchBackground: computedStyle.getPropertyValue('--vscode-editor-findMatchHighlightBackground').trim() || 'rgba(255, 255, 0, 0.3)',
+                        activeMatchBackground: computedStyle.getPropertyValue('--vscode-editor-findMatchBackground').trim() || 'rgba(255, 165, 0, 0.6)'
                     };
 
                     const terminalContainer = document.getElementById('terminal-container');
