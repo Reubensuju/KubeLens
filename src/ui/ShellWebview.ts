@@ -368,7 +368,7 @@ export class ShellWebview {
                                 term.write(message.data);
                                 break;
                             case 'clearShell':
-                                term.clear();
+                                term.reset();
                                 break;
                         }
                     });
