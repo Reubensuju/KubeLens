@@ -192,9 +192,8 @@ export class ShellWebview {
                 '-q',
                 '--image=busybox',
                 '--',
-                'sh',
-                '-c',
-                `export PS1='root@${podName}:/# '; exec sh`
+                'chroot',
+                '/host'
             ];
         } else {
             args = ['exec', '-it', podName, '--context', this.node.contextName!, ...nsArg];
