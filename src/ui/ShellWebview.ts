@@ -378,7 +378,8 @@ export class ShellWebview {
                         fontFamily: fontFamily,
                         fontSize: 12,
                         lineHeight: 1.4,
-                        theme: { background: bg, foreground: fg }
+                        theme: { background: bg, foreground: fg },
+                        allowProposedApi: true
                     });
 
                     const fitAddon = new (FitAddon.FitAddon || FitAddon)();
